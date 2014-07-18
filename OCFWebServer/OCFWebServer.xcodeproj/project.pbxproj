@@ -14,15 +14,15 @@
 		AB72696D1855DA0A0075A8CA /* OCFWebServer.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7269501855DA0A0075A8CA /* OCFWebServer.framework */; };
 		AB7269731855DA0A0075A8CA /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = AB7269711855DA0A0075A8CA /* InfoPlist.strings */; };
 		AB7269751855DA0A0075A8CA /* OCFWebServerTests.m in Sources */ = {isa = PBXBuildFile; fileRef = AB7269741855DA0A0075A8CA /* OCFWebServerTests.m */; };
-		AB7269881855DA1E0075A8CA /* OCFWebServer.h in Headers */ = {isa = PBXBuildFile; fileRef = AB72697E1855DA1E0075A8CA /* OCFWebServer.h */; };
+		AB7269881855DA1E0075A8CA /* OCFWebServer.h in Headers */ = {isa = PBXBuildFile; fileRef = AB72697E1855DA1E0075A8CA /* OCFWebServer.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		AB7269891855DA1E0075A8CA /* OCFWebServer.m in Sources */ = {isa = PBXBuildFile; fileRef = AB72697F1855DA1E0075A8CA /* OCFWebServer.m */; };
-		AB72698A1855DA1E0075A8CA /* OCFWebServerConnection.h in Headers */ = {isa = PBXBuildFile; fileRef = AB7269801855DA1E0075A8CA /* OCFWebServerConnection.h */; };
+		AB72698A1855DA1E0075A8CA /* OCFWebServerConnection.h in Headers */ = {isa = PBXBuildFile; fileRef = AB7269801855DA1E0075A8CA /* OCFWebServerConnection.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		AB72698B1855DA1E0075A8CA /* OCFWebServerConnection.m in Sources */ = {isa = PBXBuildFile; fileRef = AB7269811855DA1E0075A8CA /* OCFWebServerConnection.m */; };
 		AB72698C1855DA1E0075A8CA /* OCFWebServerPrivate.h in Headers */ = {isa = PBXBuildFile; fileRef = AB7269821855DA1E0075A8CA /* OCFWebServerPrivate.h */; };
-		AB72698D1855DA1E0075A8CA /* OCFWebServerRequest_Types.h in Headers */ = {isa = PBXBuildFile; fileRef = AB7269831855DA1E0075A8CA /* OCFWebServerRequest_Types.h */; };
-		AB72698E1855DA1E0075A8CA /* OCFWebServerRequest.h in Headers */ = {isa = PBXBuildFile; fileRef = AB7269841855DA1E0075A8CA /* OCFWebServerRequest.h */; };
+		AB72698D1855DA1E0075A8CA /* OCFWebServerRequest_Types.h in Headers */ = {isa = PBXBuildFile; fileRef = AB7269831855DA1E0075A8CA /* OCFWebServerRequest_Types.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		AB72698E1855DA1E0075A8CA /* OCFWebServerRequest.h in Headers */ = {isa = PBXBuildFile; fileRef = AB7269841855DA1E0075A8CA /* OCFWebServerRequest.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		AB72698F1855DA1E0075A8CA /* OCFWebServerRequest.m in Sources */ = {isa = PBXBuildFile; fileRef = AB7269851855DA1E0075A8CA /* OCFWebServerRequest.m */; };
-		AB7269901855DA1E0075A8CA /* OCFWebServerResponse.h in Headers */ = {isa = PBXBuildFile; fileRef = AB7269861855DA1E0075A8CA /* OCFWebServerResponse.h */; };
+		AB7269901855DA1E0075A8CA /* OCFWebServerResponse.h in Headers */ = {isa = PBXBuildFile; fileRef = AB7269861855DA1E0075A8CA /* OCFWebServerResponse.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		AB7269911855DA1E0075A8CA /* OCFWebServerResponse.m in Sources */ = {isa = PBXBuildFile; fileRef = AB7269871855DA1E0075A8CA /* OCFWebServerResponse.m */; };
 /* End PBXBuildFile section */
 
@@ -92,7 +92,9 @@
 				AB7269521855DA0A0075A8CA /* Frameworks */,
 				AB7269511855DA0A0075A8CA /* Products */,
 			);
+			indentWidth = 2;
 			sourceTree = "<group>";
+			tabWidth = 2;
 		};
 		AB7269511855DA0A0075A8CA /* Products */ = {
 			isa = PBXGroup;
@@ -176,12 +178,12 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				AB72698C1855DA1E0075A8CA /* OCFWebServerPrivate.h in Headers */,
 				AB7269881855DA1E0075A8CA /* OCFWebServer.h in Headers */,
-				AB72698A1855DA1E0075A8CA /* OCFWebServerConnection.h in Headers */,
-				AB72698D1855DA1E0075A8CA /* OCFWebServerRequest_Types.h in Headers */,
 				AB7269901855DA1E0075A8CA /* OCFWebServerResponse.h in Headers */,
 				AB72698E1855DA1E0075A8CA /* OCFWebServerRequest.h in Headers */,
+				AB72698D1855DA1E0075A8CA /* OCFWebServerRequest_Types.h in Headers */,
+				AB72698A1855DA1E0075A8CA /* OCFWebServerConnection.h in Headers */,
+				AB72698C1855DA1E0075A8CA /* OCFWebServerPrivate.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -482,6 +484,7 @@
 				AB72697A1855DA0A0075A8CA /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		AB72697B1855DA0A0075A8CA /* Build configuration list for PBXNativeTarget "OCFWebServerTests" */ = {
 			isa = XCConfigurationList;
@@ -490,6 +493,7 @@
 				AB72697D1855DA0A0075A8CA /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
