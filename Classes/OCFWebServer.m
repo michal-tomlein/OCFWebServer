@@ -153,6 +153,13 @@ static void _SignalHandler(int signal) {
   return [_handlers copy];
 }
 
+- (void)setSSLCertificates:(NSArray *)SSLCertificates {
+  _SSLCertificates = SSLCertificates;
+  _TLSSettings = SSLCertificates ? @{(id)kCFStreamSSLIsServer: @YES,
+                                     (id)kCFStreamSSLCertificates: SSLCertificates,
+                                     (id)kCFStreamSSLLevel: (id)kCFStreamSocketSecurityLevelNegotiatedSSL} : nil;
+}
+
 + (void)initialize {
   [OCFWebServerConnection class];  // Initialize class immediately to make sure it happens on the main thread
 }

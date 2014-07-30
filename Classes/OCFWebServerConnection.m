@@ -357,6 +357,11 @@ static dispatch_queue_t _formatterQueue = NULL;
   [self close];
 }
 
+- (void)socketDidSecure:(GCDAsyncSocket *)sock {
+  LOG_DEBUG(@"Socket %i did secure", self.socketFD);
+  [self _readRequestHeaders];
+}
+
 @end
 
 @implementation OCFWebServerConnection (Subclassing)
@@ -364,7 +369,12 @@ static dispatch_queue_t _formatterQueue = NULL;
 - (void)openWithCompletionHandler:(OCFWebServerConnectionCompletionHandler)completionHandler {
   LOG_DEBUG(@"Did open connection on socket %i", self.socketFD);
   self.completionHandler = completionHandler;
-  [self _readRequestHeaders];
+  NSDictionary *TLSSettings = _server.TLSSettings;
+  if (TLSSettings) {
+    [self.socket startTLS:TLSSettings];
+  } else {
+    [self _readRequestHeaders];
+  }
 }
 
 - (void)close {

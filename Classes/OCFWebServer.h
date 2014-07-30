@@ -46,6 +46,14 @@ typedef void(^OCFWebServerProcessBlock)(OCFWebServerRequest* request);
 @property (nonatomic, assign, readonly, getter=isRunning) BOOL running;
 @property (nonatomic, assign, readonly) NSUInteger port;
 
+/**
+ * An array containing a @c SecIdentityRef and a @c SecCertificateRef.
+ * If not @c nil, the server will use HTTPS.
+ * The default value is @c nil.
+ */
+@property (nonatomic, strong) NSArray *SSLCertificates;
+@property (nonatomic, strong, readonly) NSDictionary *TLSSettings;
+
 #pragma mark - OCFWebServer
 - (void)addHandlerWithMatchBlock:(OCFWebServerMatchBlock)matchBlock processBlock:(OCFWebServerProcessBlock)processBlock;
 - (void)removeAllHandlers;
