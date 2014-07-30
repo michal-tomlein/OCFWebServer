@@ -35,6 +35,8 @@
 
 #import "OCFWebServerConnection.h"
 
+#import <CocoaAsyncSocket/GCDAsyncSocket.h>
+
 #ifdef __GCDWEBSERVER_LOGGING_HEADER__
 
 // Define __GCDWEBSERVER_LOGGING_HEADER__ as a preprocessor constant to redirect GCDWebServer logging to your own system
@@ -101,15 +103,14 @@ NSDictionary* OCFWebServerParseURLEncodedForm(NSString* form);
 #endif
 
 
-@interface OCFWebServerConnection ()
-- (instancetype)initWithServer:(OCFWebServer *)server address:(NSData *)address socket:(CFSocketNativeHandle)socket;
+@interface OCFWebServerConnection () <GCDAsyncSocketDelegate>
+- (instancetype)initWithServer:(OCFWebServer *)server address:(NSData *)address socket:(GCDAsyncSocket *)socket;
 @end
 
 @interface OCFWebServer ()
 
 #pragma mark - Properties
 @property (nonatomic, copy, readonly) NSArray* handlers;
-@property (nonatomic, assign, readwrite) NSUInteger maxPendingConnections;
 @property (assign, readwrite, setter = setHeaderLoggingEnabled:) BOOL headerLoggingEnabled;
 
 @end

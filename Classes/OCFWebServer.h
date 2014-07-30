@@ -45,7 +45,6 @@ typedef void(^OCFWebServerProcessBlock)(OCFWebServerRequest* request);
 #pragma mark - Properties
 @property (nonatomic, assign, readonly, getter=isRunning) BOOL running;
 @property (nonatomic, assign, readonly) NSUInteger port;
-@property (nonatomic, assign, readonly) NSUInteger maxPendingConnections; // default: 16
 
 #pragma mark - OCFWebServer
 - (void)addHandlerWithMatchBlock:(OCFWebServerMatchBlock)matchBlock processBlock:(OCFWebServerProcessBlock)processBlock;
@@ -53,7 +52,6 @@ typedef void(^OCFWebServerProcessBlock)(OCFWebServerRequest* request);
 
 - (BOOL)start;  // Default is 8080 port and computer name
 - (BOOL)startWithPort:(NSUInteger)port bonjourName:(NSString*)name;  // Pass nil name to disable Bonjour or empty string to use computer name
-- (BOOL)startWithPort:(NSUInteger)port bonjourName:(NSString*)name maxPendingConnections:(NSUInteger)maxPendingConnections;
 - (void)stop;
 
 @end

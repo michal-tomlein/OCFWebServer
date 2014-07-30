@@ -130,17 +130,18 @@ static void _SignalHandler(int signal) {
 
 @end
 
-@interface OCFWebServer ()
+@interface OCFWebServer () <GCDAsyncSocketDelegate>
 
 #pragma mark - Properties
 @property (nonatomic, readwrite) NSUInteger port;
-@property (nonatomic, strong) dispatch_source_t source;
 @property (nonatomic, assign) CFNetServiceRef service;
 @property (nonatomic, strong) NSMutableArray *connections;
 @end
 
 @implementation OCFWebServer {
-    NSMutableArray *_handlers;
+  dispatch_queue_t _queue;
+  GCDAsyncSocket *_socket;
+  NSMutableArray *_handlers;
 }
 
 #pragma mark - Properties
@@ -160,6 +161,8 @@ static void _SignalHandler(int signal) {
 - (instancetype)init {
   self = [super init];
   if(self) {
+    NSString *queueLabel = [NSString stringWithFormat:@"%@.queue.%p", [self class], self];
+    _queue = dispatch_queue_create([queueLabel UTF8String], DISPATCH_QUEUE_SERIAL);
     self.handlers = @[];
     self.connections = [NSMutableArray new];
     [self setupHeaderLogging];
@@ -184,20 +187,20 @@ static void _SignalHandler(int signal) {
 
 #pragma mark - NSObject
 - (void)dealloc {
-  if (self.source) {
+  if (_socket) {
     [self stop];
   }
 }
 
 #pragma mark - OCFWebServer
 - (void)addHandlerWithMatchBlock:(OCFWebServerMatchBlock)matchBlock processBlock:(OCFWebServerProcessBlock)handlerBlock {
-  DCHECK(self.source == NULL);
+  DCHECK(_socket == NULL);
   OCFWebServerHandler *handler = [[OCFWebServerHandler alloc] initWithMatchBlock:matchBlock processBlock:handlerBlock];
   [_handlers insertObject:handler atIndex:0];
 }
 
 - (void)removeAllHandlers {
-  DCHECK(self.source == NULL);
+  DCHECK(_socket == NULL);
   [_handlers removeAllObjects];
 }
 
@@ -216,139 +219,75 @@ static void _NetServiceClientCallBack(CFNetServiceRef service, CFStreamError* er
 }
 
 - (BOOL)startWithPort:(NSUInteger)port bonjourName:(NSString *)name {
-  return [self startWithPort:port bonjourName:name maxPendingConnections:16];
-}
+  DCHECK(_socket == NULL);
 
-- (BOOL)startWithPort:(NSUInteger)port bonjourName:(NSString*)name maxPendingConnections:(NSUInteger)maxPendingConnections {
-  DCHECK(self.source == NULL);
-  if (maxPendingConnections > SOMAXCONN) {
-    // We could truncate maxPendingConnections to SOMAXCONN here but let's not do this. listen(int, int) does that internally already.
-    // This should be more future proof but we want to let the developer know about that.
-    LOG_WARNING(@"Max. number of pending connections was set to %i. The kernel truncates this value to %i to be aware of that (see ‘$ man listen' for details).");
+  _socket = [[GCDAsyncSocket alloc] initWithDelegate:self delegateQueue:_queue];
+  NSError *error = nil;
+  if (![_socket acceptOnPort:port error:&error]) {
+    LOG_ERROR(@"Failed starting server: %@", error);
+    return NO;
   }
-  self.maxPendingConnections = maxPendingConnections;
 
-  int listeningSocket = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-  if (listeningSocket > 0) {
-    int yes = 1;
-    setsockopt(listeningSocket, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
-    setsockopt(listeningSocket, SOL_SOCKET, SO_REUSEPORT, &yes, sizeof(yes));
-    
-    struct sockaddr_in addr4;
-    bzero(&addr4, sizeof(addr4));
-    addr4.sin_len = sizeof(addr4);
-    addr4.sin_family = AF_INET;
-    addr4.sin_port = htons(port);
-    addr4.sin_addr.s_addr = htonl(INADDR_ANY);
-    if (bind(listeningSocket, (void*)&addr4, sizeof(addr4)) == 0) {
-      if (listen(listeningSocket, (int)self.maxPendingConnections) == 0) {
-        self.source = dispatch_source_create(DISPATCH_SOURCE_TYPE_READ, listeningSocket, 0, kOCFWebServerGCDQueue);
-        dispatch_source_set_cancel_handler(self.source, ^{
-          @autoreleasepool {
-            int result = close(listeningSocket);
-            if (result != 0) {
-              LOG_ERROR(@"Failed closing socket (%i): %s", errno, strerror(errno));
-            } else {
-              LOG_DEBUG(@"Closed listening socket");
-            }
-          }
-        });
-        dispatch_source_set_event_handler(self.source, ^{
-          
-          @autoreleasepool {
-            struct sockaddr addr;
-            socklen_t addrlen = sizeof(addr);
-            int socket = accept(listeningSocket, &addr, &addrlen);
-            if (socket > 0) {
-              int yes = 1;
-              setsockopt(socket, SOL_SOCKET, SO_NOSIGPIPE, &yes, sizeof(yes));  // Make sure this socket cannot generate SIG_PIPE
-              
-              NSData* data = [NSData dataWithBytes:&addr length:addrlen];
-              Class connectionClass = [[self class] connectionClass];
-              OCFWebServerConnection *connection = [[connectionClass alloc] initWithServer:self address:data socket:socket];
-              @synchronized(_connections) {
-                [self.connections addObject:connection];
-                LOG_DEBUG(@"%lu number of connections", self.connections.count);
-              }
-              __typeof__(connection) __weak weakConnection = connection;
-              [connection openWithCompletionHandler:^{
-                @synchronized(_connections) {
-                  if(weakConnection != nil) {
-                    [self.connections removeObject:weakConnection];
-                    LOG_DEBUG(@"%lu number of connections", self.connections.count);
-                  }
-                }
-              }];
-            } else {
-              LOG_ERROR(@"Failed accepting socket (%i): %s", errno, strerror(errno));
-            }
-          }
-          
-        });
-        
-        if (port == 0) {  // Determine the actual port we are listening on
-          struct sockaddr addr;
-          socklen_t addrlen = sizeof(addr);
-          if (getsockname(listeningSocket, &addr, &addrlen) == 0) {
-            struct sockaddr_in* sockaddr = (struct sockaddr_in*)&addr;
-            _port = ntohs(sockaddr->sin_port);
-          } else {
-            LOG_ERROR(@"Failed retrieving socket address (%i): %s", errno, strerror(errno));
-          }
-        } else {
-          _port = port;
-        }
-        
-        if (name) {
-          CFStringRef cfName = CFBridgingRetain(name);
-          _service = CFNetServiceCreate(kCFAllocatorDefault, CFSTR("local."), CFSTR("_http._tcp"), cfName, (SInt32)_port);
-          CFRelease(cfName);
-          if (_service) {
-            CFNetServiceClientContext context = {0, (__bridge void *)(self), NULL, NULL, NULL};
-            CFNetServiceSetClient(_service, _NetServiceClientCallBack, &context);
-            CFNetServiceScheduleWithRunLoop(_service, CFRunLoopGetMain(), kCFRunLoopCommonModes);
-            CFStreamError error = {0};
-            CFNetServiceRegisterWithOptions(_service, 0, &error);
-          } else {
-            LOG_ERROR(@"Failed creating CFNetService");
-          }
-        }
-        
-        dispatch_resume(self.source);
-        LOG_VERBOSE(@"%@ started on port %i", [self class], (int)_port);
-      } else {
-        LOG_ERROR(@"Failed listening on socket (%i): %s", errno, strerror(errno));
-        close(listeningSocket);
-      }
+  _port = [_socket localPort];
+
+  if (name) {
+    CFStringRef cfName = CFBridgingRetain(name);
+    _service = CFNetServiceCreate(kCFAllocatorDefault, CFSTR("local."), CFSTR("_http._tcp"), cfName, (SInt32)_port);
+    CFRelease(cfName);
+    if (_service) {
+      CFNetServiceClientContext context = {0, (__bridge void *)(self), NULL, NULL, NULL};
+      CFNetServiceSetClient(_service, _NetServiceClientCallBack, &context);
+      CFNetServiceScheduleWithRunLoop(_service, CFRunLoopGetMain(), kCFRunLoopCommonModes);
+      CFStreamError error = {0};
+      CFNetServiceRegisterWithOptions(_service, 0, &error);
     } else {
-      LOG_ERROR(@"Failed binding socket (%i): %s", errno, strerror(errno));
-      close(listeningSocket);
+      LOG_ERROR(@"Failed creating CFNetService");
     }
-  } else {
-    LOG_ERROR(@"Failed creating socket (%i): %s", errno, strerror(errno));
   }
-  return (self.source ? YES : NO);
+
+  return YES;
 }
 
 - (BOOL)isRunning {
-  return (self.source ? YES : NO);
+  return (_socket ? YES : NO);
 }
 
 - (void)stop {
-  DCHECK(self.source != nil);
-  if (self.source) {
+  DCHECK(_socket != nil);
+  if (_socket) {
     if (self.service) {
       CFNetServiceUnscheduleFromRunLoop(self.service, CFRunLoopGetMain(), kCFRunLoopCommonModes);
       CFNetServiceSetClient(self.service, NULL, NULL);
       CFRelease(self.service);
       self.service = NULL;
     }
-    
-    dispatch_source_cancel(self.source);  // This will close the socket
-    self.source = nil;    
+
+    [_socket setDelegate:nil];
+    [_socket disconnect];
+    _socket = nil;
     LOG_VERBOSE(@"%@ stopped", [self class]);
   }
   self.port = 0;
+}
+
+#pragma mark - GCD Async Socket Delegate
+
+- (void)socket:(GCDAsyncSocket *)sock didAcceptNewSocket:(GCDAsyncSocket *)newSocket {
+  Class connectionClass = [[self class] connectionClass];
+  OCFWebServerConnection *connection = [[connectionClass alloc] initWithServer:self address:newSocket.connectedAddress socket:newSocket];
+  @synchronized(_connections) {
+    [self.connections addObject:connection];
+    LOG_DEBUG(@"%lu number of connections", self.connections.count);
+  }
+  __typeof__(connection) __weak weakConnection = connection;
+  [connection openWithCompletionHandler:^{
+    @synchronized(_connections) {
+      if(weakConnection != nil) {
+        [self.connections removeObject:weakConnection];
+        LOG_DEBUG(@"%lu number of connections", self.connections.count);
+      }
+    }
+  }];
 }
 
 @end

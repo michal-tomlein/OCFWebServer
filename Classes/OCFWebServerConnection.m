@@ -37,13 +37,12 @@
 #import "OCFWebServerRequest.h"
 #import "OCFWebServerResponse.h"
 
-#define kHeadersReadBuffer 1024
-#define kBodyWriteBufferSize (32 * 1024)
+typedef NS_ENUM(long, OCFWebServerConnectionDataTag) {
+  OCFWebServerConnectionDataTagHeaders,
+  OCFWebServerConnectionDataTagBody
+};
 
-typedef void (^ReadBufferCompletionBlock)(dispatch_data_t buffer);
-typedef void (^ReadDataCompletionBlock)(NSData* data);
-typedef void (^ReadHeadersCompletionBlock)(NSData* extraData);
-typedef void (^ReadBodyCompletionBlock)(BOOL success);
+#define kBodyWriteBufferSize (32 * 1024)
 
 typedef void (^WriteBufferCompletionBlock)(BOOL success);
 typedef void (^WriteDataCompletionBlock)(BOOL success);
@@ -62,7 +61,8 @@ static dispatch_queue_t _formatterQueue = NULL;
 @property (nonatomic, copy, readwrite) NSData *address;  // struct sockaddr
 @property (nonatomic, readwrite) NSUInteger totalBytesRead;
 @property (nonatomic, readwrite) NSUInteger totalBytesWritten;
-@property (nonatomic, assign) CFSocketNativeHandle socket;
+@property (nonatomic, strong) GCDAsyncSocket *socket;
+@property (nonatomic) int socketFD;
 @property (nonatomic, assign) CFHTTPMessageRef requestMessage;
 @property (nonatomic, strong) OCFWebServerRequest *request;
 @property (nonatomic, strong) OCFWebServerHandler *handler;
@@ -72,155 +72,13 @@ static dispatch_queue_t _formatterQueue = NULL;
 
 @end
 
-@implementation OCFWebServerConnection (Read)
-
-- (void)_readBufferWithLength:(NSUInteger)length completionBlock:(ReadBufferCompletionBlock)block {
-  dispatch_read(self.socket, length, kOCFWebServerGCDQueue, ^(dispatch_data_t buffer, int error) {
-    @autoreleasepool
-	  {
-      if (error == 0) {
-        size_t size = dispatch_data_get_size(buffer);
-        if (size > 0) {
-          LOG_DEBUG(@"Connection received %i bytes on socket %i", size, self.socket);
-          self.totalBytesRead = self.totalBytesRead + size;
-          block(buffer);
-        } else {
-          if (self.totalBytesRead > 0) {
-            LOG_ERROR(@"No more data available on socket %i", self.socket);
-          } else {
-            LOG_WARNING(@"No data received from socket %i", self.socket);
-          }
-          block(NULL);
-        }
-      } else {
-        LOG_ERROR(@"Error while reading from socket %i: %s (%i)", self.socket, strerror(error), error);
-        block(NULL);
-      }
-    }
-  });
-}
-
-- (void)_readDataWithCompletionBlock:(ReadDataCompletionBlock)block {
-  [self _readBufferWithLength:SIZE_T_MAX completionBlock:^(dispatch_data_t buffer) {
-    if(buffer) {
-      NSMutableData* data = [[NSMutableData alloc] initWithCapacity:dispatch_data_get_size(buffer)];
-      dispatch_data_apply(buffer, ^bool(dispatch_data_t region, size_t offset, const void* buffer, size_t size) {
-        [data appendBytes:buffer length:size];
-        return true;
-      });
-      block(data);
-    } else {
-      block(nil);
-    }
-  }];
-}
-
-- (void)_readHeadersWithCompletionBlock:(ReadHeadersCompletionBlock)block {
-  DCHECK(self.requestMessage);
-  [self _readBufferWithLength:SIZE_T_MAX completionBlock:^(dispatch_data_t buffer) {
-    if(buffer) {
-      NSMutableData* data = [NSMutableData dataWithCapacity:kHeadersReadBuffer];
-      dispatch_data_apply(buffer, ^bool(dispatch_data_t region, size_t offset, const void* buffer, size_t size) {
-        [data appendBytes:buffer length:size];
-        return true;
-      });
-      NSRange range = [data rangeOfData:_separatorData options:0 range:NSMakeRange(0, data.length)];
-      if (range.location == NSNotFound) {
-        if (CFHTTPMessageAppendBytes(self.requestMessage, data.bytes, data.length)) {
-          [self _readHeadersWithCompletionBlock:block];
-        } else {
-          LOG_ERROR(@"Failed appending request headers data from socket %i", self.socket);
-          block(nil);
-        }
-      } else {
-        NSUInteger length = range.location + range.length;
-        if (CFHTTPMessageAppendBytes(self.requestMessage, data.bytes, length)) {
-          if (CFHTTPMessageIsHeaderComplete(self.requestMessage)) {
-            block([data subdataWithRange:NSMakeRange(length, data.length - length)]);
-          } else {
-            LOG_ERROR(@"Failed parsing request headers from socket %i", self.socket);
-            block(nil);
-          }
-        } else {
-          LOG_ERROR(@"Failed appending request headers data from socket %i", self.socket);
-          block(nil);
-        }
-      }
-    } else {
-      block(nil);
-    }
-  }];
-}
-
-- (void)_readBodyWithRemainingLength:(NSUInteger)length completionBlock:(ReadBodyCompletionBlock)block {
-  DCHECK([self.request hasBody]);
-  [self _readBufferWithLength:length completionBlock:^(dispatch_data_t buffer) {
-    
-    if (buffer) {
-      NSInteger remainingLength = length - dispatch_data_get_size(buffer);
-      if (remainingLength >= 0) {
-        bool success = dispatch_data_apply(buffer, ^bool(dispatch_data_t region, size_t offset, const void* buffer, size_t size) {
-          NSInteger result = [self.request write:buffer maxLength:size];
-          if (result != size) {
-            LOG_ERROR(@"Failed writing request body on socket %i (error %i)", self.socket, (int)result);
-            return false;
-          }
-          return true;
-        });
-        if (success) {
-          if (remainingLength > 0) {
-            [self _readBodyWithRemainingLength:remainingLength completionBlock:block];
-          } else {
-            block(YES);
-          }
-        } else {
-          block(NO);
-        }
-      } else {
-        DNOT_REACHED();
-        block(NO);
-      }
-    } else {
-      block(NO);
-    }
-    
-  }];
-}
-
-@end
-
 @implementation OCFWebServerConnection (Write)
 
-- (void)_writeBuffer:(dispatch_data_t)buffer withCompletionBlock:(WriteBufferCompletionBlock)block {
-  size_t size = dispatch_data_get_size(buffer);
-  dispatch_write(self.socket, buffer, kOCFWebServerGCDQueue, ^(dispatch_data_t data, int error) {
-    @autoreleasepool {
-      if (error == 0) {
-        DCHECK(data == NULL);
-        LOG_DEBUG(@"Connection sent %i bytes on socket %i", size, self.socket);
-        self.totalBytesWritten = self.totalBytesWritten + size;
-        block(YES);
-      } else {
-        LOG_ERROR(@"Error while writing to socket %i: %s (%i)", self.socket, strerror(error), error);
-        block(NO);
-      }
-    }
-  });
-}
-
 - (void)_writeData:(NSData *)data withCompletionBlock:(WriteDataCompletionBlock)block {
-  // Remarks by Christian:
-  // data is either the serialized HTTP header or the serialized "continue" delimiter (\n\n).
-  // If data is the serialized HTTP header then ARC wants to release this value at some point.
-  // If we are not using data before the end of this scope ARC will release data.
-  // Then data.bytes will become invalid and buffer will work with garbage.
-  // We could work around this problem by having the serialized header as a ivar.
-  // I have decided to not do that. Instead I am simply passing DISPATCH_DATA_DESTRUCTOR_DEFAULT as
-  // the destructor block which causes dispatch_data_create to copy data.bytes immediately.
-  // This is not so bad because data is usually very small (a header or HTTP continue).
-  
-  dispatch_data_t buffer = dispatch_data_create(data.bytes, data.length, kOCFWebServerGCDQueue, DISPATCH_DATA_DESTRUCTOR_DEFAULT);
-  [self _writeBuffer:buffer withCompletionBlock:block];
+  [self.socket writeData:data withTimeout:-1 tag:-1];
+  LOG_DEBUG(@"Connection sent %i bytes on socket %i", [data length], self.socketFD);
+  self.totalBytesWritten += [data length];
+  block(YES);
 }
 
 - (void)_writeHeadersWithCompletionBlock:(WriteHeadersCompletionBlock)block {
@@ -232,13 +90,11 @@ static dispatch_queue_t _formatterQueue = NULL;
 
 - (void)_writeBodyWithCompletionBlock:(WriteBodyCompletionBlock)block {
   DCHECK([self.response hasBody]);
-  void *buffer = malloc(kBodyWriteBufferSize);
-  NSInteger result = [self.response read:buffer maxLength:kBodyWriteBufferSize];
+  NSMutableData *data = [[NSMutableData alloc] initWithLength:kBodyWriteBufferSize];
+  NSInteger result = [self.response read:data.mutableBytes maxLength:kBodyWriteBufferSize];
   if (result > 0) {
-    dispatch_data_t wrapper = dispatch_data_create(buffer, result, kOCFWebServerGCDQueue, ^(){
-      free(buffer);
-    });
-    [self _writeBuffer:wrapper withCompletionBlock:^(BOOL success) {
+    [data setLength:result];
+    [self _writeData:data withCompletionBlock:^(BOOL success) {
       if (success) {
         [self _writeBodyWithCompletionBlock:block];
       } else {
@@ -246,12 +102,10 @@ static dispatch_queue_t _formatterQueue = NULL;
       }
     }];
   } else if (result < 0) {
-    LOG_ERROR(@"Failed reading response body on socket %i (error %i)", self.socket, (int)result);
+    LOG_ERROR(@"Failed reading response body on socket %i (error %i)", self.socketFD, (int)result);
     block(NO);
-    free(buffer);
   } else {
     block(YES);
-    free(buffer);
   }
 }
 
@@ -303,7 +157,7 @@ static dispatch_queue_t _formatterQueue = NULL;
   [self _writeHeadersWithCompletionBlock:^(BOOL success) {
     [self close];
   }];
-  LOG_DEBUG(@"Connection aborted with status code %i on socket %i", statusCode, self.socket);
+  LOG_DEBUG(@"Connection aborted with status code %i on socket %i", statusCode, self.socketFD);
 }
 
 // http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
@@ -362,49 +216,43 @@ static dispatch_queue_t _formatterQueue = NULL;
 
 - (void)_readRequestBody:(NSData*)initialData {
   if ([self.request open]) {
-    NSInteger length = self.request.contentLength;
     if (initialData.length) {
-      NSInteger result = [self.request write:initialData.bytes maxLength:initialData.length];
-      if (result == initialData.length) {
-        length -= initialData.length;
-        DCHECK(length >= 0);
-      } else {
-        LOG_ERROR(@"Failed writing request body on socket %i (error %i)", self.socket, (int)result);
-        length = -1;
-      }
+      [self _processBodyData:initialData];
     }
-    if (length > 0) {
-      [self _readBodyWithRemainingLength:length completionBlock:^(BOOL success) {
-        
-        if (![self.request close]) {
-          success = NO;
-        }
-        if (success) {
-          [self _processRequest];
-        } else {
-          [self _abortWithStatusCode:500];
-        }
-        
-      }];
-    } else if (length == 0) {
-      if ([self.request close]) {
-        [self _processRequest];
-      } else {
-        [self _abortWithStatusCode:500];
-      }
-    } else {
-      [self.request close];  // Can't do anything with result anyway
-      [self _abortWithStatusCode:500];
-    }
+    [self.socket readDataToLength:self.request.contentLength withTimeout:-1 tag:OCFWebServerConnectionDataTagBody];
   } else {
     [self _abortWithStatusCode:500];
   }
 }
 
+- (void)_processBodyData:(NSData *)data {
+  NSInteger length = self.request.contentLength;
+  NSInteger result = [self.request write:data.bytes maxLength:data.length];
+  if (result == data.length) {
+    length -= data.length;
+    DCHECK(length >= 0);
+  } else {
+    LOG_ERROR(@"Failed writing request body on socket %i (error %i)", self.socketFD, (int)result);
+    length = -1;
+  }
+  if (length == 0) {
+    if ([self.request close]) {
+      [self _processRequest];
+    } else {
+      [self _abortWithStatusCode:500];
+    }
+  }
+}
+
 - (void)_readRequestHeaders {
   self.requestMessage = CFHTTPMessageCreateEmpty(kCFAllocatorDefault, true);
-  [self _readHeadersWithCompletionBlock:^(NSData* extraData) {
-    if (extraData) {
+  [self.socket readDataToData:_separatorData withTimeout:-1 maxLength:SIZE_T_MAX tag:OCFWebServerConnectionDataTagHeaders];
+}
+
+- (void)_processHeaderData:(NSData *)data {
+  NSData *extraData = nil;
+  if (CFHTTPMessageAppendBytes(self.requestMessage, data.bytes, data.length)) {
+    if (CFHTTPMessageIsHeaderComplete(self.requestMessage)) {
       NSString* requestMethod = [(id)CFBridgingRelease(CFHTTPMessageCopyRequestMethod(self.requestMessage)) uppercaseString];
       DCHECK(requestMethod);
       NSURL* requestURL = (id)CFBridgingRelease(CFHTTPMessageCopyRequestURL(self.requestMessage));
@@ -441,14 +289,14 @@ static dispatch_queue_t _formatterQueue = NULL;
                   }
                 }];
               } else {
-                LOG_ERROR(@"Unsupported 'Expect' / 'Content-Length' header combination on socket %i", self.socket);
+                LOG_ERROR(@"Unsupported 'Expect' / 'Content-Length' header combination on socket %i", self.socketFD);
                 [self _abortWithStatusCode:417];
               }
             } else {
               [self _readRequestBody:extraData];
             }
           } else {
-            LOG_ERROR(@"Unexpected 'Content-Length' header value on socket %i", self.socket);
+            LOG_ERROR(@"Unexpected 'Content-Length' header value on socket %i", self.socketFD);
             [self _abortWithStatusCode:400];
           }
         } else {
@@ -458,18 +306,24 @@ static dispatch_queue_t _formatterQueue = NULL;
         [self _abortWithStatusCode:405];
       }
     } else {
-      [self _abortWithStatusCode:500];
+      LOG_ERROR(@"Failed parsing request headers from socket %i", self.socketFD);
+      return;
     }
-  }];
+  } else {
+    LOG_ERROR(@"Failed appending request headers data from socket %i", self.socketFD);
+    return;
+  }
 }
 
-- (instancetype)initWithServer:(OCFWebServer *)server address:(NSData *)address socket:(CFSocketNativeHandle)socket {
+- (instancetype)initWithServer:(OCFWebServer *)server address:(NSData *)address socket:(GCDAsyncSocket *)socket {
   if((self = [super init])) {
-    self.totalBytesRead = 0;
-    self.totalBytesWritten = 0;
-    self.server = server;
-    self.address = address;
-    self.socket = socket;
+    _server = server;
+    _address = address;
+    _socket = socket;
+    [socket setDelegate:self];
+    [socket performBlock:^{
+      _socketFD = socket.socketFD;
+    }];
   }
   return self;
 }
@@ -483,23 +337,43 @@ static dispatch_queue_t _formatterQueue = NULL;
   }
 }
 
+#pragma mark - GCD Async Socket Delegate
+
+- (void)socket:(GCDAsyncSocket *)sock didReadData:(NSData *)data withTag:(long)tag {
+  self.totalBytesRead += [data length];
+
+  switch (tag) {
+    case OCFWebServerConnectionDataTagHeaders:
+      [self _processHeaderData:data];
+      break;
+
+    case OCFWebServerConnectionDataTagBody:
+      [self _processBodyData:data];
+      break;
+  }
+}
+
+- (void)socketDidDisconnect:(GCDAsyncSocket *)sock withError:(NSError *)err {
+  [self close];
+}
+
 @end
 
 @implementation OCFWebServerConnection (Subclassing)
 
 - (void)openWithCompletionHandler:(OCFWebServerConnectionCompletionHandler)completionHandler {
-  LOG_DEBUG(@"Did open connection on socket %i", self.socket);
+  LOG_DEBUG(@"Did open connection on socket %i", self.socketFD);
   self.completionHandler = completionHandler;
   [self _readRequestHeaders];
 }
 
 - (void)close {
-  int result = close(self.socket);
-  if (result != 0) {
-    LOG_ERROR(@"Failed closing socket %i for connection (%i): %s", self.socket, errno, strerror(errno));
+  [self.socket disconnectAfterWriting];
+  LOG_DEBUG(@"Will close connection on socket %i", self.socketFD);
+  if (self.completionHandler) {
+    self.completionHandler();
+    self.completionHandler = nil;
   }
-  LOG_DEBUG(@"Did close connection on socket %i", self.socket);
-  self.completionHandler ? self.completionHandler() : nil;
 }
 
 @end
