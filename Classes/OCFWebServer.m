@@ -134,23 +134,24 @@ static void _SignalHandler(int signal) {
 
 #pragma mark - Properties
 @property (nonatomic, readwrite) NSUInteger port;
-@property (nonatomic, assign) CFNetServiceRef service;
-@property (nonatomic, strong) NSMutableArray *connections;
 @end
 
 @implementation OCFWebServer {
   dispatch_queue_t _queue;
   GCDAsyncSocket *_socket;
+  CFNetServiceRef _service;
   NSMutableArray *_handlers;
+  NSMutableArray *_connections;
 }
 
 #pragma mark - Properties
+
 - (void)setHandlers:(NSArray *)handlers {
   _handlers = [handlers mutableCopy];
 }
 
 - (NSArray *)handlers {
-  return [_handlers copy];
+  return _handlers;
 }
 
 - (void)setSSLCertificates:(NSArray *)SSLCertificates {
@@ -171,7 +172,7 @@ static void _SignalHandler(int signal) {
     NSString *queueLabel = [NSString stringWithFormat:@"%@.queue.%p", [self class], self];
     _queue = dispatch_queue_create([queueLabel UTF8String], DISPATCH_QUEUE_SERIAL);
     self.handlers = @[];
-    self.connections = [NSMutableArray new];
+    _connections = [NSMutableArray new];
     [self setupHeaderLogging];
   }
   return self;
@@ -262,11 +263,11 @@ static void _NetServiceClientCallBack(CFNetServiceRef service, CFStreamError* er
 - (void)stop {
   DCHECK(_socket != nil);
   if (_socket) {
-    if (self.service) {
-      CFNetServiceUnscheduleFromRunLoop(self.service, CFRunLoopGetMain(), kCFRunLoopCommonModes);
-      CFNetServiceSetClient(self.service, NULL, NULL);
-      CFRelease(self.service);
-      self.service = NULL;
+    if (_service) {
+      CFNetServiceUnscheduleFromRunLoop(_service, CFRunLoopGetMain(), kCFRunLoopCommonModes);
+      CFNetServiceSetClient(_service, NULL, NULL);
+      CFRelease(_service);
+      _service = NULL;
     }
 
     [_socket setDelegate:nil];
@@ -283,15 +284,15 @@ static void _NetServiceClientCallBack(CFNetServiceRef service, CFStreamError* er
   Class connectionClass = [[self class] connectionClass];
   OCFWebServerConnection *connection = [[connectionClass alloc] initWithServer:self address:newSocket.connectedAddress socket:newSocket];
   @synchronized(_connections) {
-    [self.connections addObject:connection];
-    LOG_DEBUG(@"%lu number of connections", self.connections.count);
+    [_connections addObject:connection];
+    LOG_DEBUG(@"%lu number of connections", _connections.count);
   }
   __typeof__(connection) __weak weakConnection = connection;
   [connection openWithCompletionHandler:^{
     @synchronized(_connections) {
       if(weakConnection != nil) {
-        [self.connections removeObject:weakConnection];
-        LOG_DEBUG(@"%lu number of connections", self.connections.count);
+        [_connections removeObject:weakConnection];
+        LOG_DEBUG(@"%lu number of connections", _connections.count);
       }
     }
   }];

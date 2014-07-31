@@ -54,7 +54,10 @@ static NSData* _continueData = nil;
 static NSDateFormatter* _dateFormatter = nil;
 static dispatch_queue_t _formatterQueue = NULL;
 
-@interface OCFWebServerConnection ()
+@interface OCFWebServerConnection () {
+  NSMutableDictionary *_writeCompletionBlocks;
+  long _writeTag;
+}
 
 #pragma mark - Properties
 @property (nonatomic, weak, readwrite) OCFWebServer* server;
@@ -75,10 +78,11 @@ static dispatch_queue_t _formatterQueue = NULL;
 @implementation OCFWebServerConnection (Write)
 
 - (void)_writeData:(NSData *)data withCompletionBlock:(WriteDataCompletionBlock)block {
-  [self.socket writeData:data withTimeout:-1 tag:-1];
+  _writeCompletionBlocks[@(_writeTag)] = block;
+  [self.socket writeData:data withTimeout:-1 tag:_writeTag];
   LOG_DEBUG(@"Connection sent %i bytes on socket %i", [data length], self.socketFD);
   self.totalBytesWritten += [data length];
-  block(YES);
+  _writeTag++;
 }
 
 - (void)_writeHeadersWithCompletionBlock:(WriteHeadersCompletionBlock)block {
@@ -317,6 +321,7 @@ static dispatch_queue_t _formatterQueue = NULL;
 
 - (instancetype)initWithServer:(OCFWebServer *)server address:(NSData *)address socket:(GCDAsyncSocket *)socket {
   if((self = [super init])) {
+    _writeCompletionBlocks = [[NSMutableDictionary alloc] init];
     _server = server;
     _address = address;
     _socket = socket;
@@ -350,6 +355,15 @@ static dispatch_queue_t _formatterQueue = NULL;
     case OCFWebServerConnectionDataTagBody:
       [self _processBodyData:data];
       break;
+  }
+}
+
+- (void)socket:(GCDAsyncSocket *)sock didWriteDataWithTag:(long)tag {
+  NSNumber *writeTag = @(tag);
+  WriteDataCompletionBlock block = _writeCompletionBlocks[writeTag];
+  if (block) {
+    [_writeCompletionBlocks removeObjectForKey:writeTag];
+    block(YES);
   }
 }
 
