@@ -55,6 +55,7 @@ static NSDateFormatter* _dateFormatter = nil;
 static dispatch_queue_t _formatterQueue = NULL;
 
 @interface OCFWebServerConnection () {
+  dispatch_queue_t _queue;
   NSMutableDictionary *_writeCompletionBlocks;
   long _writeTag;
 }
@@ -322,10 +323,12 @@ static dispatch_queue_t _formatterQueue = NULL;
 - (instancetype)initWithServer:(OCFWebServer *)server address:(NSData *)address socket:(GCDAsyncSocket *)socket {
   if((self = [super init])) {
     _writeCompletionBlocks = [[NSMutableDictionary alloc] init];
+    NSString *queueLabel = [NSString stringWithFormat:@"%@.queue.%p", [self class], self];
+    _queue = dispatch_queue_create([queueLabel UTF8String], DISPATCH_QUEUE_SERIAL);
     _server = server;
     _address = address;
     _socket = socket;
-    [socket setDelegate:self];
+    [socket setDelegate:self delegateQueue:_queue];
     [socket performBlock:^{
       _socketFD = socket.socketFD;
     }];
@@ -383,7 +386,7 @@ static dispatch_queue_t _formatterQueue = NULL;
 - (void)openWithCompletionHandler:(OCFWebServerConnectionCompletionHandler)completionHandler {
   LOG_DEBUG(@"Did open connection on socket %i", self.socketFD);
   self.completionHandler = completionHandler;
-  NSDictionary *TLSSettings = _server.TLSSettings;
+  NSDictionary *TLSSettings = self.server.TLSSettings;
   if (TLSSettings) {
     [self.socket startTLS:TLSSettings];
   } else {
