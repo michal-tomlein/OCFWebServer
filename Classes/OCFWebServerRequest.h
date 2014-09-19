@@ -49,9 +49,17 @@
 @property(nonatomic, copy, readonly) NSString *contentType;  // Automatically parsed from headers (nil if request has no body)
 @property(nonatomic, readonly) NSUInteger contentLength;  // Automatically parsed from headers
 
+/**
+ *  Returns the parsed "Range" header or (NSUIntegerMax, 0) if absent or malformed.
+ *  The range will be set to (offset, length) if expressed from the beginning
+ *  of the entity body, or (NSUIntegerMax, length) if expressed from its end.
+ */
+@property(nonatomic, readonly) NSRange byteRange;
+
 #pragma mark - Creating
 - (instancetype)initWithMethod:(NSString *)method URL:(NSURL *)url headers:(NSDictionary *)headers path:(NSString *)path query:(NSDictionary *)query;
 - (BOOL)hasBody;  // Convenience method
+- (BOOL)hasByteRange;
 
 #pragma mark - Responding
 - (void)respondWith:(OCFWebServerResponse *)response;

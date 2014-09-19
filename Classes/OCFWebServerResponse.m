@@ -143,10 +143,10 @@
 
 @end
 
-@interface OCFWebServerDataResponse ()
-
-#pragma mark - Properties
-@property (nonatomic, assign) NSInteger offset;
+@interface OCFWebServerDataResponse () {
+  NSData *_data;
+  NSInteger _offset;
+}
 
 @end
 
@@ -163,32 +163,32 @@
   }
   
   if((self = [super initWithContentType:type contentLength:data.length])) {
-    self.data = data;
-    self.offset = -1;
+    _data = data;
+    _offset = -1;
   }
   return self;
 }
 
 - (void)dealloc {
-  DCHECK(self.offset < 0);
+  DCHECK(_offset < 0);
 }
 
 - (BOOL)open {
-  DCHECK(self.offset < 0);
-  self.offset = 0;
+  DCHECK(_offset < 0);
+  _offset = 0;
   return YES;
 }
 
 - (NSInteger)read:(void *)buffer maxLength:(NSUInteger)length {
-  DCHECK(self.offset >= 0);
+  DCHECK(_offset >= 0);
   NSInteger size = 0;
-  if(self.offset < self.data.length) {
-    size = MIN(self.data.length - self.offset, length);
+  if (_offset < [_data length]) {
+    size = MIN([_data length] - _offset, length);
     // the original author used the following snippet here and I do not know why
     // bcopy((char*)self.data.bytes + self.offset, buffer, size);
-    NSRange range = NSMakeRange(self.offset, size);
-    [self.data getBytes:buffer range:range];
-    self.offset = self.offset + size;
+    NSRange range = NSMakeRange(_offset, size);
+    [_data getBytes:buffer range:range];
+    _offset += size;
   }
   return size;
 }
@@ -244,11 +244,12 @@
 
 @end
 
-@interface OCFWebServerFileResponse ()
-
-#pragma mark - Properties
-@property (nonatomic, copy) NSString *path;
-@property (nonatomic, assign) int file;
+@interface OCFWebServerFileResponse () {
+  NSString *_path;
+  NSUInteger _offset;
+  NSUInteger _size;
+  int _file;
+}
 
 @end
 
@@ -256,18 +257,34 @@
 
 #pragma mark - Creating
 + (instancetype)responseWithFile:(NSString*)path {
-  return [[[self class] alloc] initWithFile:path];
+  return [[[self class] alloc] initWithFile:path byteRange:NSMakeRange(NSUIntegerMax, 0) isAttachment:NO];
 }
 
 + (instancetype)responseWithFile:(NSString*)path isAttachment:(BOOL)attachment {
-  return [[[self class] alloc] initWithFile:path isAttachment:attachment];
+  return [[[self class] alloc] initWithFile:path byteRange:NSMakeRange(NSUIntegerMax, 0) isAttachment:attachment];
+}
+
++ (instancetype)responseWithFile:(NSString*)path byteRange:(NSRange)range {
+  return [[[self class] alloc] initWithFile:path byteRange:range isAttachment:NO];
+}
+
++ (instancetype)responseWithFile:(NSString*)path byteRange:(NSRange)range isAttachment:(BOOL)attachment {
+  return [[[self class] alloc] initWithFile:path byteRange:range isAttachment:attachment];
 }
 
 - (instancetype)initWithFile:(NSString*)path {
-  return [self initWithFile:path isAttachment:NO];
+  return [self initWithFile:path byteRange:NSMakeRange(NSUIntegerMax, 0) isAttachment:NO];
 }
 
 - (instancetype)initWithFile:(NSString*)path isAttachment:(BOOL)attachment {
+  return [self initWithFile:path byteRange:NSMakeRange(NSUIntegerMax, 0) isAttachment:attachment];
+}
+
+- (instancetype)initWithFile:(NSString*)path byteRange:(NSRange)range {
+  return [self initWithFile:path byteRange:range isAttachment:NO];
+}
+
+- (instancetype)initWithFile:(NSString*)path byteRange:(NSRange)range isAttachment:(BOOL)attachment {
   struct stat info;
   if (lstat([path fileSystemRepresentation], &info) || !(info.st_mode & S_IFREG)) {
     DNOT_REACHED();
@@ -277,9 +294,37 @@
   if (type == nil) {
     type = kOCFWebServerDefaultMimeType;
   }
+
+  NSUInteger fileSize = (NSUInteger)info.st_size;
+
+  BOOL hasByteRange = ((range.location != NSUIntegerMax) || (range.length > 0));
+  if (hasByteRange) {
+    if (range.location != NSUIntegerMax) {
+      range.location = MIN(range.location, fileSize);
+      range.length = MIN(range.length, fileSize - range.location);
+    } else {
+      range.length = MIN(range.length, fileSize);
+      range.location = fileSize - range.length;
+    }
+    if (range.length == 0) {
+      return nil;  // TODO: Return 416 status code and "Content-Range: bytes */{file length}" header
+    }
+  } else {
+    range.location = 0;
+    range.length = fileSize;
+  }
   
-  if((self = [super initWithContentType:type contentLength:info.st_size])) {
-    self.path = path;
+  if ((self = [super initWithContentType:type contentLength:range.length])) {
+    _path = [path copy];
+    _offset = range.location;
+    _size = range.length;
+
+    if (hasByteRange) {
+      self.statusCode = 206;
+      [self setValue:[NSString stringWithFormat:@"bytes %lu-%lu/%lu", (unsigned long)_offset, (unsigned long)(_offset + _size - 1), (unsigned long)fileSize] forAdditionalHeader:@"Content-Range"];
+      LOG_DEBUG(@"Using content bytes range [%lu-%lu] for file \"%@\"", (unsigned long)_offset, (unsigned long)(_offset + _size - 1), path);
+    }
+
     if (attachment) {  // TODO: Use http://tools.ietf.org/html/rfc5987 to encode file names with special characters instead of using lossy conversion to ISO 8859-1
       NSData* data = [[path lastPathComponent] dataUsingEncoding:NSISOLatin1StringEncoding allowLossyConversion:YES];
       NSString* fileName = data ? [[NSString alloc] initWithData:data encoding:NSISOLatin1StringEncoding] : nil;
@@ -289,31 +334,39 @@
         DNOT_REACHED();
       }
     }
-    self.file = 0;
   }
   return self;
 }
 
 - (void)dealloc {
-  DCHECK(self.file <= 0);
+  DCHECK(_file <= 0);
 }
 
 - (BOOL)open {
-  DCHECK(self.file <= 0);
-  self.file = open([self.path fileSystemRepresentation], O_NOFOLLOW | O_RDONLY);
-  return (self.file > 0 ? YES : NO);
+  DCHECK(_file <= 0);
+  _file = open([_path fileSystemRepresentation], O_NOFOLLOW | O_RDONLY);
+  if (_file <= 0) {
+    return NO;
+  }
+  if (lseek(_file, _offset, SEEK_SET) != (off_t)_offset) {
+    close(_file);
+    return NO;
+  }
+  return YES;
 }
 
 - (NSInteger)read:(void*)buffer maxLength:(NSUInteger)length {
-  DCHECK(self.file > 0);
-  return read(self.file, buffer, length);
+  DCHECK(_file > 0);
+  ssize_t outLength = read(_file, buffer, MIN(_size, length));
+  _size = outLength >= _size ? 0 : (_size - outLength);
+  return outLength;
 }
 
 - (BOOL)close {
-  DCHECK(self.file > 0);
-  int result = close(self.file);
-  self.file = 0;
-  return (result == 0 ? YES : NO);
+  DCHECK(_file > 0);
+  int result = close(_file);
+  _file = 0;
+  return result == 0;
 }
 
 @end

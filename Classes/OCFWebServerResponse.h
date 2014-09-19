@@ -72,7 +72,6 @@
 @end
 
 @interface OCFWebServerDataResponse : OCFWebServerResponse
-@property (nonatomic, copy) NSData *data;
 
 #pragma mark - Creating
 + (instancetype)responseWithData:(NSData*)data contentType:(NSString*)type;
@@ -97,6 +96,10 @@
 #pragma mark - Creating
 + (instancetype)responseWithFile:(NSString*)path;
 + (instancetype)responseWithFile:(NSString*)path isAttachment:(BOOL)attachment;
++ (instancetype)responseWithFile:(NSString*)path byteRange:(NSRange)range;
++ (instancetype)responseWithFile:(NSString*)path byteRange:(NSRange)range isAttachment:(BOOL)attachment;
 - (instancetype)initWithFile:(NSString*)path;
 - (instancetype)initWithFile:(NSString*)path isAttachment:(BOOL)attachment;
+- (instancetype)initWithFile:(NSString*)path byteRange:(NSRange)range;
+- (instancetype)initWithFile:(NSString*)path byteRange:(NSRange)range isAttachment:(BOOL)attachment;
 @end
