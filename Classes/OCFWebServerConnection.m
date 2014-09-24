@@ -371,6 +371,10 @@ static dispatch_queue_t _formatterQueue = NULL;
 }
 
 - (void)socketDidDisconnect:(GCDAsyncSocket *)sock withError:(NSError *)err {
+  for (WriteDataCompletionBlock block in [_writeCompletionBlocks objectEnumerator]) {
+    block(NO);
+  }
+  [_writeCompletionBlocks removeAllObjects];
   [self close];
 }
 
