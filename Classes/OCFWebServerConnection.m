@@ -145,7 +145,7 @@ static dispatch_queue_t _formatterQueue = NULL;
 
 - (void)_initializeResponseHeadersWithStatusCode:(NSInteger)statusCode {
   self.responseMessage = CFHTTPMessageCreateResponse(kCFAllocatorDefault, statusCode, NULL, kCFHTTPVersion1_1);
-  CFHTTPMessageSetHeaderFieldValue(self.responseMessage, CFSTR("Connection"), CFSTR("Close"));
+  CFHTTPMessageSetHeaderFieldValue(self.responseMessage, CFSTR("Connection"), CFSTR("Keep-Alive"));
   CFHTTPMessageSetHeaderFieldValue(self.responseMessage, CFSTR("Server"), (__bridge CFStringRef)[[self.server class] serverName]);
   dispatch_sync(_formatterQueue, ^{
     NSString* date = [_dateFormatter stringFromDate:[NSDate date]];
@@ -251,7 +251,7 @@ static dispatch_queue_t _formatterQueue = NULL;
 
 - (void)_readRequestHeaders {
   self.requestMessage = CFHTTPMessageCreateEmpty(kCFAllocatorDefault, true);
-  [self.socket readDataToData:_separatorData withTimeout:-1 maxLength:SIZE_T_MAX tag:OCFWebServerConnectionDataTagHeaders];
+  [self.socket readDataToData:_separatorData withTimeout:15.0 maxLength:SIZE_T_MAX tag:OCFWebServerConnectionDataTagHeaders];
 }
 
 - (void)_processHeaderData:(NSData *)data {
@@ -375,12 +375,26 @@ static dispatch_queue_t _formatterQueue = NULL;
     block(NO);
   }
   [_writeCompletionBlocks removeAllObjects];
-  [self close];
+  [self _close];
+}
+
+- (NSTimeInterval)socket:(GCDAsyncSocket *)sock shouldTimeoutReadWithTag:(long)tag elapsed:(NSTimeInterval)elapsed bytesDone:(NSUInteger)length {
+  [self _close];
+  return 0.0;
 }
 
 - (void)socketDidSecure:(GCDAsyncSocket *)sock {
   LOG_DEBUG(@"Socket %i did secure", self.socketFD);
   [self _readRequestHeaders];
+}
+
+- (void)_close {
+  [self.socket disconnectAfterWriting];
+  LOG_DEBUG(@"Will close connection on socket %i", self.socketFD);
+  if (self.completionHandler) {
+    self.completionHandler();
+    self.completionHandler = nil;
+  }
 }
 
 @end
@@ -399,12 +413,13 @@ static dispatch_queue_t _formatterQueue = NULL;
 }
 
 - (void)close {
-  [self.socket disconnectAfterWriting];
-  LOG_DEBUG(@"Will close connection on socket %i", self.socketFD);
-  if (self.completionHandler) {
-    self.completionHandler();
-    self.completionHandler = nil;
+  // Process next request
+  if (self.responseMessage) {
+    CFRelease(self.responseMessage);
+    self.responseMessage = NULL;
   }
+  [self _readRequestHeaders];
+  // Close on timeout
 }
 
 @end
