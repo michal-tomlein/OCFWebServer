@@ -156,9 +156,14 @@ static void _SignalHandler(int signal) {
 
 - (void)setSSLCertificates:(NSArray *)SSLCertificates {
   _SSLCertificates = SSLCertificates;
+#ifdef GCDAsyncSocketSSLIsServer
+  _TLSSettings = SSLCertificates ? @{GCDAsyncSocketSSLIsServer: @YES,
+                                     GCDAsyncSocketSSLCertificates: SSLCertificates} : nil;
+#else
   _TLSSettings = SSLCertificates ? @{(id)kCFStreamSSLIsServer: @YES,
                                      (id)kCFStreamSSLCertificates: SSLCertificates,
                                      (id)kCFStreamSSLLevel: (id)kCFStreamSocketSecurityLevelNegotiatedSSL} : nil;
+#endif
 }
 
 + (void)initialize {
