@@ -111,7 +111,7 @@ NSDictionary* OCFWebServerParseURLEncodedForm(NSString* form);
 
 #pragma mark - Properties
 @property (nonatomic, copy, readonly) NSArray* handlers;
-@property (assign, readwrite, setter = setHeaderLoggingEnabled:) BOOL headerLoggingEnabled;
+@property (assign, readwrite) BOOL headerLoggingEnabled;
 
 @end
 

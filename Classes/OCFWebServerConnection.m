@@ -67,10 +67,10 @@ static dispatch_queue_t _formatterQueue = NULL;
 @property (nonatomic, readwrite) NSUInteger totalBytesWritten;
 @property (nonatomic, strong) GCDAsyncSocket *socket;
 @property (nonatomic) int socketFD;
-@property (nonatomic, assign) CFHTTPMessageRef requestMessage;
+@property (nonatomic, strong) __attribute__((NSObject)) CFHTTPMessageRef requestMessage;
 @property (nonatomic, strong) OCFWebServerRequest *request;
 @property (nonatomic, strong) OCFWebServerHandler *handler;
-@property (nonatomic, assign) CFHTTPMessageRef responseMessage;
+@property (nonatomic, strong) __attribute__((NSObject)) CFHTTPMessageRef responseMessage;
 @property (nonatomic, strong) OCFWebServerResponse *response;
 @property (nonatomic, copy) OCFWebServerConnectionCompletionHandler completionHandler;
 
@@ -144,15 +144,15 @@ static dispatch_queue_t _formatterQueue = NULL;
 }
 
 - (void)_initializeResponseHeadersWithStatusCode:(NSInteger)statusCode {
-  self.responseMessage = CFHTTPMessageCreateResponse(kCFAllocatorDefault, statusCode, NULL, kCFHTTPVersion1_1);
-  CFHTTPMessageSetHeaderFieldValue(self.responseMessage, CFSTR("Connection"), CFSTR("Keep-Alive"));
-  CFHTTPMessageSetHeaderFieldValue(self.responseMessage, CFSTR("Server"), (__bridge CFStringRef)[[self.server class] serverName]);
+  CFHTTPMessageRef responseMessage = CFHTTPMessageCreateResponse(kCFAllocatorDefault, statusCode, NULL, kCFHTTPVersion1_1);
+  self.responseMessage = responseMessage;
+  CFHTTPMessageSetHeaderFieldValue(responseMessage, CFSTR("Connection"), CFSTR("Keep-Alive"));
+  CFHTTPMessageSetHeaderFieldValue(responseMessage, CFSTR("Server"), (__bridge CFStringRef)[[self.server class] serverName]);
   dispatch_sync(_formatterQueue, ^{
     NSString* date = [_dateFormatter stringFromDate:[NSDate date]];
-    CFStringRef cfDate = (CFStringRef)CFBridgingRetain(date);
-    CFHTTPMessageSetHeaderFieldValue(self.responseMessage, CFSTR("Date"), cfDate);
-    CFRelease(cfDate);
+    CFHTTPMessageSetHeaderFieldValue(responseMessage, CFSTR("Date"), (__bridge CFStringRef)date);
   });
+  CFRelease(responseMessage);
 }
 
 - (void)_abortWithStatusCode:(NSUInteger)statusCode {
@@ -177,19 +177,20 @@ static dispatch_queue_t _formatterQueue = NULL;
       }
       if (weakSelf.response) {
         [weakSelf _initializeResponseHeadersWithStatusCode:weakSelf.response.statusCode];
+        CFHTTPMessageRef responseMessage = weakSelf.responseMessage;
         NSUInteger maxAge = weakSelf.response.cacheControlMaxAge;
         if (maxAge > 0) {
-          CFHTTPMessageSetHeaderFieldValue(weakSelf.responseMessage, CFSTR("Cache-Control"), (__bridge CFStringRef)[NSString stringWithFormat:@"max-age=%i, public", (int)maxAge]);
+          CFHTTPMessageSetHeaderFieldValue(responseMessage, CFSTR("Cache-Control"), (__bridge CFStringRef)[NSString stringWithFormat:@"max-age=%i, public", (int)maxAge]);
         } else {
-          CFHTTPMessageSetHeaderFieldValue(weakSelf.responseMessage, CFSTR("Cache-Control"), CFSTR("no-cache"));
+          CFHTTPMessageSetHeaderFieldValue(responseMessage, CFSTR("Cache-Control"), CFSTR("no-cache"));
         }
         [weakSelf.response.additionalHeaders enumerateKeysAndObjectsUsingBlock:^(NSString *key, NSString *obj, BOOL* stop) {
-          CFHTTPMessageSetHeaderFieldValue(weakSelf.responseMessage, (__bridge CFStringRef)(key), (__bridge CFStringRef)(obj));
+          CFHTTPMessageSetHeaderFieldValue(responseMessage, (__bridge CFStringRef)(key), (__bridge CFStringRef)(obj));
         }];
         
         if ([weakSelf.response hasBody]) {
-          CFHTTPMessageSetHeaderFieldValue(weakSelf.responseMessage, CFSTR("Content-Type"), (__bridge CFStringRef)weakSelf.response.contentType);
-          CFHTTPMessageSetHeaderFieldValue(weakSelf.responseMessage, CFSTR("Content-Length"), (__bridge CFStringRef)[NSString stringWithFormat:@"%i", (int)weakSelf.response.contentLength]);
+          CFHTTPMessageSetHeaderFieldValue(responseMessage, CFSTR("Content-Type"), (__bridge CFStringRef)weakSelf.response.contentType);
+          CFHTTPMessageSetHeaderFieldValue(responseMessage, CFSTR("Content-Length"), (__bridge CFStringRef)[NSString stringWithFormat:@"%i", (int)weakSelf.response.contentLength]);
         }
         [weakSelf _writeHeadersWithCompletionBlock:^(BOOL success) {
           if (success) {
@@ -250,17 +251,20 @@ static dispatch_queue_t _formatterQueue = NULL;
 }
 
 - (void)_readRequestHeaders {
-  self.requestMessage = CFHTTPMessageCreateEmpty(kCFAllocatorDefault, true);
+  CFHTTPMessageRef requestMessage = CFHTTPMessageCreateEmpty(kCFAllocatorDefault, true);
+  self.requestMessage = requestMessage;
+  CFRelease(requestMessage);
   [self.socket readDataToData:_separatorData withTimeout:15.0 maxLength:SIZE_T_MAX tag:OCFWebServerConnectionDataTagHeaders];
 }
 
 - (void)_processHeaderData:(NSData *)data {
   NSData *extraData = nil;
-  if (CFHTTPMessageAppendBytes(self.requestMessage, data.bytes, data.length)) {
-    if (CFHTTPMessageIsHeaderComplete(self.requestMessage)) {
-      NSString* requestMethod = [(id)CFBridgingRelease(CFHTTPMessageCopyRequestMethod(self.requestMessage)) uppercaseString];
+  CFHTTPMessageRef requestMessage = self.requestMessage;
+  if (CFHTTPMessageAppendBytes(requestMessage, data.bytes, data.length)) {
+    if (CFHTTPMessageIsHeaderComplete(requestMessage)) {
+      NSString* requestMethod = [(id)CFBridgingRelease(CFHTTPMessageCopyRequestMethod(requestMessage)) uppercaseString];
       DCHECK(requestMethod);
-      NSURL* requestURL = (id)CFBridgingRelease(CFHTTPMessageCopyRequestURL(self.requestMessage));
+      NSURL* requestURL = (id)CFBridgingRelease(CFHTTPMessageCopyRequestURL(requestMessage));
       DCHECK(requestURL);
       NSString* requestPath = OCFWebServerUnescapeURLString((id)CFBridgingRelease(CFURLCopyPath((CFURLRef)requestURL)));  // Don't use -[NSURL path] which strips the ending slash
       if(requestPath == nil) {
@@ -273,7 +277,7 @@ static dispatch_queue_t _formatterQueue = NULL;
         requestQuery = OCFWebServerParseURLEncodedForm(queryString);
         DCHECK(requestQuery);
       }
-      NSDictionary* requestHeaders = (id)CFBridgingRelease(CFHTTPMessageCopyAllHeaderFields(self.requestMessage));
+      NSDictionary* requestHeaders = (id)CFBridgingRelease(CFHTTPMessageCopyAllHeaderFields(requestMessage));
       DCHECK(requestHeaders);
       for (OCFWebServerHandler *handler in self.server.handlers) {
         self.request = handler.matchBlock(requestMethod, requestURL, requestHeaders, requestPath, requestQuery);
@@ -285,7 +289,7 @@ static dispatch_queue_t _formatterQueue = NULL;
       if (self.request) {
         if (self.request.hasBody) {
           if (extraData.length <= self.request.contentLength) {
-            NSString* expectHeader = (id)CFBridgingRelease(CFHTTPMessageCopyHeaderFieldValue(self.requestMessage, CFSTR("Expect")));
+            NSString* expectHeader = (id)CFBridgingRelease(CFHTTPMessageCopyHeaderFieldValue(requestMessage, CFSTR("Expect")));
             if (expectHeader) {
               if ([expectHeader caseInsensitiveCompare:@"100-continue"] == NSOrderedSame) {
                 [self _writeData:_continueData withCompletionBlock:^(BOOL success) {
@@ -334,15 +338,6 @@ static dispatch_queue_t _formatterQueue = NULL;
     }];
   }
   return self;
-}
-
-- (void)dealloc {
-  if(self.requestMessage) {
-    CFRelease(self.requestMessage);
-  }
-  if(self.responseMessage) {
-    CFRelease(self.responseMessage);
-  }
 }
 
 #pragma mark - GCD Async Socket Delegate
@@ -414,10 +409,7 @@ static dispatch_queue_t _formatterQueue = NULL;
 
 - (void)close {
   // Process next request
-  if (self.responseMessage) {
-    CFRelease(self.responseMessage);
-    self.responseMessage = NULL;
-  }
+  self.responseMessage = NULL;
   [self _readRequestHeaders];
   // Close on timeout
 }

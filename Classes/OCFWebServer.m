@@ -394,7 +394,9 @@ static void _NetServiceClientCallBack(CFNetServiceRef service, CFStreamError* er
               response = [weakSelf _responseWithContentsOfFile:indexPath];
             }
           }
-          response = [weakSelf _responseWithContentsOfDirectory:filePath];
+          if (!response) {
+            response = [weakSelf _responseWithContentsOfDirectory:filePath];
+          }
         } else {
           response = [weakSelf _responseWithContentsOfFile:filePath];
         }
