@@ -47,22 +47,15 @@
 static BOOL _run;
 
 NSString* OCFWebServerGetMimeTypeForExtension(NSString* extension) {
-  static NSDictionary* _overrides = nil;
-  if (_overrides == nil) {
-    _overrides = @{@"css": @"text/css"};
-  }
   NSString* mimeType = nil;
   extension = [extension lowercaseString];
   if (extension.length) {
-    mimeType = _overrides[extension];
-    if (mimeType == nil) {
-      CFStringRef cfExtension = CFBridgingRetain(extension);
-      CFStringRef uti = UTTypeCreatePreferredIdentifierForTag(kUTTagClassFilenameExtension, cfExtension, NULL);
-      CFRelease(cfExtension);
-      if (uti) {
-        mimeType = (id)CFBridgingRelease(UTTypeCopyPreferredTagWithClass(uti, kUTTagClassMIMEType));
-        CFRelease(uti);
-      }
+    CFStringRef cfExtension = CFBridgingRetain(extension);
+    CFStringRef uti = UTTypeCreatePreferredIdentifierForTag(kUTTagClassFilenameExtension, cfExtension, NULL);
+    CFRelease(cfExtension);
+    if (uti) {
+      mimeType = (id)CFBridgingRelease(UTTypeCopyPreferredTagWithClass(uti, kUTTagClassMIMEType));
+      CFRelease(uti);
     }
   }
   return mimeType;
