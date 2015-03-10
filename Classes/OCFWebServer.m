@@ -335,6 +335,11 @@ static void _NetServiceClientCallBack(CFNetServiceRef service, CFStreamError* er
 
 - (void)addDefaultHandlerForMethod:(NSString*)method requestClass:(Class)class processBlock:(OCFWebServerProcessBlock)block {
   [self addHandlerWithMatchBlock:^OCFWebServerRequest *(NSString* requestMethod, NSURL* requestURL, NSDictionary* requestHeaders, NSString* urlPath, NSDictionary* urlQuery) {
+
+    if (![requestMethod isEqualToString:method]) {
+      return nil;
+    }
+
     return [[class alloc] initWithMethod:requestMethod URL:requestURL headers:requestHeaders path:urlPath query:urlQuery];
   } processBlock:block];
 }
