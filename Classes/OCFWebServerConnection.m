@@ -220,7 +220,7 @@ static dispatch_queue_t _formatterQueue = NULL;
   }
 }
 
-- (void)_readRequestBody:(NSData*)initialData {
+- (void)_readRequestBody:(NSData *)initialData {
   if ([self.request open]) {
     if (initialData.length) {
       [self _processBodyData:initialData];
@@ -260,24 +260,24 @@ static dispatch_queue_t _formatterQueue = NULL;
 - (void)_processHeaderData:(NSData *)data {
   NSData *extraData = nil;
   CFHTTPMessageRef requestMessage = self.requestMessage;
-  if (CFHTTPMessageAppendBytes(requestMessage, data.bytes, data.length)) {
+  if (requestMessage && CFHTTPMessageAppendBytes(requestMessage, data.bytes, data.length)) {
     if (CFHTTPMessageIsHeaderComplete(requestMessage)) {
-      NSString* requestMethod = [(id)CFBridgingRelease(CFHTTPMessageCopyRequestMethod(requestMessage)) uppercaseString];
+      NSString* requestMethod = [CFBridgingRelease(CFHTTPMessageCopyRequestMethod(requestMessage)) uppercaseString];
       DCHECK(requestMethod);
-      NSURL* requestURL = (id)CFBridgingRelease(CFHTTPMessageCopyRequestURL(requestMessage));
+      NSURL* requestURL = CFBridgingRelease(CFHTTPMessageCopyRequestURL(requestMessage));
       DCHECK(requestURL);
-      NSString* requestPath = OCFWebServerUnescapeURLString((id)CFBridgingRelease(CFURLCopyPath((CFURLRef)requestURL)));  // Don't use -[NSURL path] which strips the ending slash
-      if(requestPath == nil) {
+      NSString* requestPath = requestURL ? OCFWebServerUnescapeURLString(CFBridgingRelease(CFURLCopyPath((CFURLRef)requestURL))) : nil; // Don't use -[NSURL path] which strips the ending slash
+      if (requestPath == nil) {
         requestPath = @"/";
       }
       DCHECK(requestPath);
       NSDictionary* requestQuery = nil;
-      NSString* queryString = (id)CFBridgingRelease(CFURLCopyQueryString((CFURLRef)requestURL, NULL));  // Don't use -[NSURL query] to make sure query is not unescaped;
+      NSString* queryString = requestURL ? CFBridgingRelease(CFURLCopyQueryString((CFURLRef)requestURL, NULL)) : nil; // Don't use -[NSURL query] to make sure query is not unescaped;
       if (queryString.length) {
         requestQuery = OCFWebServerParseURLEncodedForm(queryString);
         DCHECK(requestQuery);
       }
-      NSDictionary* requestHeaders = (id)CFBridgingRelease(CFHTTPMessageCopyAllHeaderFields(requestMessage));
+      NSDictionary* requestHeaders = CFBridgingRelease(CFHTTPMessageCopyAllHeaderFields(requestMessage));
       DCHECK(requestHeaders);
       for (OCFWebServerHandler *handler in self.server.handlers) {
         self.request = handler.matchBlock(requestMethod, requestURL, requestHeaders, requestPath, requestQuery);
@@ -289,7 +289,7 @@ static dispatch_queue_t _formatterQueue = NULL;
       if (self.request) {
         if (self.request.hasBody) {
           if (extraData.length <= self.request.contentLength) {
-            NSString* expectHeader = (id)CFBridgingRelease(CFHTTPMessageCopyHeaderFieldValue(requestMessage, CFSTR("Expect")));
+            NSString* expectHeader = CFBridgingRelease(CFHTTPMessageCopyHeaderFieldValue(requestMessage, CFSTR("Expect")));
             if (expectHeader) {
               if ([expectHeader caseInsensitiveCompare:@"100-continue"] == NSOrderedSame) {
                 [self _writeData:_continueData withCompletionBlock:^(BOOL success) {
@@ -325,7 +325,7 @@ static dispatch_queue_t _formatterQueue = NULL;
 }
 
 - (instancetype)initWithServer:(OCFWebServer *)server address:(NSData *)address socket:(GCDAsyncSocket *)socket {
-  if((self = [super init])) {
+  if ((self = [super init])) {
     _writeCompletionBlocks = [[NSMutableDictionary alloc] init];
     NSString *queueLabel = [NSString stringWithFormat:@"%@.queue.%p", [self class], self];
     _queue = dispatch_queue_create([queueLabel UTF8String], DISPATCH_QUEUE_SERIAL);

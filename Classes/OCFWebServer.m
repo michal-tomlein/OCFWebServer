@@ -54,7 +54,7 @@ NSString* OCFWebServerGetMimeTypeForExtension(NSString* extension) {
     CFStringRef uti = UTTypeCreatePreferredIdentifierForTag(kUTTagClassFilenameExtension, cfExtension, NULL);
     CFRelease(cfExtension);
     if (uti) {
-      mimeType = (id)CFBridgingRelease(UTTypeCopyPreferredTagWithClass(uti, kUTTagClassMIMEType));
+      mimeType = CFBridgingRelease(UTTypeCopyPreferredTagWithClass(uti, kUTTagClassMIMEType));
       CFRelease(uti);
     }
   }
@@ -62,8 +62,7 @@ NSString* OCFWebServerGetMimeTypeForExtension(NSString* extension) {
 }
 
 NSString* OCFWebServerUnescapeURLString(NSString* string) {
-  return (id)CFBridgingRelease(CFURLCreateStringByReplacingPercentEscapesUsingEncoding(kCFAllocatorDefault, (CFStringRef)string, CFSTR(""),
-                                                                      kCFStringEncodingUTF8));
+  return CFBridgingRelease(CFURLCreateStringByReplacingPercentEscapesUsingEncoding(kCFAllocatorDefault, (CFStringRef)string, CFSTR(""), kCFStringEncodingUTF8));
 }
 
 NSDictionary* OCFWebServerParseURLEncodedForm(NSString* form) {
@@ -113,7 +112,7 @@ static void _SignalHandler(int signal) {
 #pragma mark - Creating
 - (instancetype)initWithMatchBlock:(OCFWebServerMatchBlock)matchBlock processBlock:(OCFWebServerProcessBlock)processBlock {
   self = [super init];
-  if(self) {
+  if (self) {
     self.matchBlock = matchBlock;
     self.processBlock = processBlock;
   }
@@ -166,7 +165,7 @@ static void _SignalHandler(int signal) {
 #pragma mark - Creating
 - (instancetype)init {
   self = [super init];
-  if(self) {
+  if (self) {
     NSString *queueLabel = [NSString stringWithFormat:@"%@.queue.%p", [self class], self];
     _queue = dispatch_queue_create([queueLabel UTF8String], DISPATCH_QUEUE_SERIAL);
     self.handlers = @[];
@@ -180,11 +179,11 @@ static void _SignalHandler(int signal) {
   NSProcessInfo *processInfo = [NSProcessInfo processInfo];
   NSDictionary *environment = processInfo.environment;
   NSString *headerLoggingEnabledString = environment[@"OCFWS_HEADER_LOGGING_ENABLED"];
-  if(headerLoggingEnabledString == nil) {
+  if (headerLoggingEnabledString == nil) {
     self.headerLoggingEnabled = NO;
     return;
   }
-  if([headerLoggingEnabledString.uppercaseString isEqualToString:@"YES"]) {
+  if ([headerLoggingEnabledString.uppercaseString isEqualToString:@"YES"]) {
     self.headerLoggingEnabled = YES;
     return;
   }
@@ -283,14 +282,14 @@ static void _NetServiceClientCallBack(CFNetServiceRef service, CFStreamError* er
   OCFWebServerConnection *connection = [[connectionClass alloc] initWithServer:self address:newSocket.connectedAddress socket:newSocket];
   @synchronized(_connections) {
     [_connections addObject:connection];
-    LOG_DEBUG(@"%lu number of connections", _connections.count);
+    LOG_DEBUG(@"Number of connections: %lu", _connections.count);
   }
   __typeof__(connection) __weak weakConnection = connection;
   [connection openWithCompletionHandler:^{
     @synchronized(_connections) {
-      if(weakConnection != nil) {
+      if (weakConnection != nil) {
         [_connections removeObject:weakConnection];
-        LOG_DEBUG(@"%lu number of connections", _connections.count);
+        LOG_DEBUG(@"Number of connections: %lu", _connections.count);
       }
     }
   }];

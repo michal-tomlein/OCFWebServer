@@ -72,14 +72,14 @@
 }
 
 - (instancetype)initWithContentType:(NSString*)contentType contentLength:(NSUInteger)length {
-  if((self = [super init])) {
+  if ((self = [super init])) {
     self.contentType = contentType;
     self.contentLength = length;
     self.statusCode = 200;
     self.cacheControlMaxAge = 0;
     self.additionalHeaders = @{};
     
-    if((self.contentLength > 0) && (self.contentType == nil)) {
+    if ((self.contentLength > 0) && (self.contentType == nil)) {
       self.contentType = [kOCFWebServerDefaultMimeType copy];
     }
   }
@@ -157,12 +157,12 @@
 }
 
 - (instancetype)initWithData:(NSData*)data contentType:(NSString*)type {
-  if(data == nil) {
+  if (data == nil) {
     DNOT_REACHED();
     return nil;
   }
   
-  if((self = [super initWithContentType:type contentLength:data.length])) {
+  if ((self = [super initWithContentType:type contentLength:data.length])) {
     _data = data;
     _offset = -1;
   }

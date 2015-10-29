@@ -93,7 +93,7 @@ static NSStringEncoding _StringEncodingFromCharset(NSString* charset) {
 
 #pragma mark - Creating
 - (instancetype)initWithMethod:(NSString*)method URL:(NSURL*)URL headers:(NSDictionary*)headers path:(NSString*)path query:(NSDictionary*)query {
-  if((self = [super init])) {
+  if ((self = [super init])) {
     self.method = method;
     self.URL = URL;
     self.headers = headers;
@@ -102,7 +102,7 @@ static NSStringEncoding _StringEncodingFromCharset(NSString* charset) {
     
     self.contentType = self.headers[@"Content-Type"];
     NSString *contentLengthString = self.headers[@"Content-Length"];
-    if(contentLengthString == nil) {
+    if (contentLengthString == nil) {
       LOG_DEBUG(@"Request has no content length.");
       // FIXME: Check RFC. This does not seem to be correct.
       //        As far I know it is okay for requests to not
@@ -112,14 +112,14 @@ static NSStringEncoding _StringEncodingFromCharset(NSString* charset) {
       // FIXME: Validate contents of contentLengthString: A malformed content length value
       //        may have bad side effects.
       NSInteger length = [contentLengthString integerValue];
-      if(length < 0) {
+      if (length < 0) {
         DNOT_REACHED();
         return nil;
       }
       self.contentLength = length;
     }
     
-    if((self.contentLength > 0) && (self.contentType == nil)) {
+    if ((self.contentLength > 0) && (self.contentType == nil)) {
       self.contentType = kOCFWebServerDefaultMimeType;
     }
 
@@ -249,7 +249,7 @@ static NSStringEncoding _StringEncodingFromCharset(NSString* charset) {
 
 #pragma mark - Creating
 - (instancetype)initWithMethod:(NSString*)method URL:(NSURL*)URL headers:(NSDictionary*)headers path:(NSString*)path query:(NSDictionary*)query {
-  if((self = [super initWithMethod:method URL:URL headers:headers path:path query:query])) {
+  if ((self = [super initWithMethod:method URL:URL headers:headers path:path query:query])) {
     self.filePath = [NSTemporaryDirectory() stringByAppendingPathComponent:[[NSUUID UUID] UUIDString]];
     self.file = 0;
   }
@@ -322,10 +322,10 @@ static NSStringEncoding _StringEncodingFromCharset(NSString* charset) {
 
 #pragma mark - Creating
 - (instancetype)initWithContentType:(NSString*)contentType {
-  if((self = [super init])) {
+  if ((self = [super init])) {
     self.contentType = contentType;
     NSArray *components = [self.contentType componentsSeparatedByString:@";"];
-    if(components.count > 0) {
+    if (components.count > 0) {
       self.mimeType = [components[0] lowercaseString];
     }
     if (self.mimeType == nil) {
@@ -349,9 +349,9 @@ static NSStringEncoding _StringEncodingFromCharset(NSString* charset) {
 
 #pragma mark - Creating
 - (instancetype)initWithContentType:(NSString*)contentType data:(NSData*)data {
-  if((self = [super initWithContentType:contentType])) {
+  if ((self = [super initWithContentType:contentType])) {
     self.data = data;
-    if([self.mimeType hasPrefix:@"text/"]) {
+    if ([self.mimeType hasPrefix:@"text/"]) {
       NSString* charset = _ExtractHeaderParameter(self.contentType, @"charset");
       self.string = [[NSString alloc] initWithData:_data encoding:_StringEncodingFromCharset(charset)];
     }
@@ -378,7 +378,7 @@ static NSStringEncoding _StringEncodingFromCharset(NSString* charset) {
 
 #pragma mark - Creating
 - (instancetype)initWithContentType:(NSString*)contentType fileName:(NSString*)fileName temporaryPath:(NSString*)temporaryPath {
-  if((self = [super initWithContentType:contentType])) {
+  if ((self = [super initWithContentType:contentType])) {
     self.fileName = fileName;
     self.temporaryPath = temporaryPath;
   }
@@ -454,12 +454,12 @@ static NSStringEncoding _StringEncodingFromCharset(NSString* charset) {
 
 #pragma mark - Creating
 - (instancetype)initWithMethod:(NSString*)method URL:(NSURL*)URL headers:(NSDictionary*)headers path:(NSString*)path query:(NSDictionary*)query {
-  if((self = [super initWithMethod:method URL:URL headers:headers path:path query:query])) {
+  if ((self = [super initWithMethod:method URL:URL headers:headers path:path query:query])) {
     NSString *boundary = _ExtractHeaderParameter(self.contentType, @"boundary");
-    if(boundary) {
+    if (boundary) {
       self.boundary = [[NSString stringWithFormat:@"--%@", boundary] dataUsingEncoding:NSASCIIStringEncoding];
     }
-    if(self.boundary == nil) {
+    if (self.boundary == nil) {
       DNOT_REACHED();
       return nil;
     }
@@ -508,7 +508,7 @@ static NSStringEncoding _StringEncodingFromCharset(NSString* charset) {
       if (CFHTTPMessageIsHeaderComplete(message)) {
         NSString* controlName = nil;
         NSString* fileName = nil;
-        NSDictionary* headers = (id)CFBridgingRelease(CFHTTPMessageCopyAllHeaderFields(message));
+        NSDictionary* headers = CFBridgingRelease(CFHTTPMessageCopyAllHeaderFields(message));
         NSString* contentDisposition = headers[@"Content-Disposition"];
         if ([[contentDisposition lowercaseString] hasPrefix:@"form-data;"]) {
           controlName = _ExtractHeaderParameter(contentDisposition, @"name");
