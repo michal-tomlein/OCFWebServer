@@ -41,7 +41,6 @@
 #import <netinet/in.h>
 
 #import "OCFWebServerPrivate.h"
-#import "OCFWebServerRequest.h"
 #import "OCFWebServerResponse.h"
 
 static BOOL _run;
@@ -102,8 +101,8 @@ static void _SignalHandler(int signal) {
 @interface OCFWebServerHandler ()
 
 #pragma mark - Properties
-@property(nonatomic, copy, readwrite) OCFWebServerMatchBlock matchBlock;
-@property(nonatomic, copy, readwrite) OCFWebServerProcessBlock processBlock;
+@property (nonatomic, copy, readwrite) OCFWebServerMatchBlock matchBlock;
+@property (nonatomic, copy, readwrite) OCFWebServerProcessBlock processBlock;
 
 @end
 

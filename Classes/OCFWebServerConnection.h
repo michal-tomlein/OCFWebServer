@@ -41,10 +41,10 @@ typedef void(^OCFWebServerConnectionCompletionHandler)(void);
 @interface OCFWebServerConnection : NSObject
 
 #pragma mark - Properties
-@property(nonatomic, weak, readonly) OCFWebServer *server;
-@property(nonatomic, copy, readonly) NSData *address;  // struct sockaddr
-@property(nonatomic, readonly) NSUInteger totalBytesRead;
-@property(nonatomic, readonly) NSUInteger totalBytesWritten;
+@property (nonatomic, weak, readonly) OCFWebServer *server;
+@property (nonatomic, copy, readonly) NSData *address;  // struct sockaddr
+@property (nonatomic, readonly) NSUInteger totalBytesRead;
+@property (nonatomic, readonly) NSUInteger totalBytesWritten;
 
 @end
 

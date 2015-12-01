@@ -38,11 +38,11 @@
 @interface OCFWebServerResponse : NSObject
 
 #pragma mark - Properties
-@property(nonatomic, copy, readonly) NSString *contentType;
-@property(nonatomic, readonly) NSUInteger contentLength;
-@property(nonatomic, assign, readwrite) NSInteger statusCode;  // Default is 200
-@property(nonatomic) NSUInteger cacheControlMaxAge;  // Default is 0 seconds i.e. "no-cache"
-@property(nonatomic, readonly, copy) NSDictionary *additionalHeaders;
+@property (nonatomic, copy, readonly) NSString *contentType;
+@property (nonatomic, readonly) NSUInteger contentLength;
+@property (nonatomic, assign, readwrite) NSInteger statusCode;  // Default is 200
+@property (nonatomic) NSUInteger cacheControlMaxAge;  // Default is 0 seconds i.e. "no-cache"
+@property (nonatomic, readonly, copy) NSDictionary *additionalHeaders;
 @property (nonatomic, copy) NSDictionary *userInfo;
 
 #pragma mark - Creating

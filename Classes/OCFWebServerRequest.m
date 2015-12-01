@@ -34,7 +34,6 @@
  */
 
 #import "OCFWebServerPrivate.h"
-#import "OCFWebServerRequest.h"
 
 #define kMultiPartBufferSize (256 * 1024)
 
@@ -79,13 +78,13 @@ static NSStringEncoding _StringEncodingFromCharset(NSString* charset) {
 @interface OCFWebServerRequest ()
 
 #pragma mark - Properties
-@property(nonatomic, copy, readwrite) NSString* method;
-@property(nonatomic, copy, readwrite) NSURL* URL;
-@property(nonatomic, copy, readwrite) NSDictionary* headers;
-@property(nonatomic, copy, readwrite) NSString* path;
-@property(nonatomic, copy, readwrite) NSDictionary* query;  // May be nil
-@property(nonatomic, copy, readwrite) NSString* contentType;
-@property(nonatomic, readwrite) NSUInteger contentLength;  // Automatically parsed from headers
+@property (nonatomic, copy, readwrite) NSString* method;
+@property (nonatomic, copy, readwrite) NSURL* URL;
+@property (nonatomic, copy, readwrite) NSDictionary* headers;
+@property (nonatomic, copy, readwrite) NSString* path;
+@property (nonatomic, copy, readwrite) NSDictionary* query;  // May be nil
+@property (nonatomic, copy, readwrite) NSString* contentType;
+@property (nonatomic, readwrite) NSUInteger contentLength;  // Automatically parsed from headers
 
 @end
 
@@ -196,7 +195,7 @@ static NSStringEncoding _StringEncodingFromCharset(NSString* charset) {
 @interface OCFWebServerDataRequest ()
 
 #pragma mark - Properties
-@property(nonatomic, copy, readwrite) NSData *data;  // Only valid after open / write / close sequence
+@property (nonatomic, copy, readwrite) NSData *data;  // Only valid after open / write / close sequence
 
 @end
 
@@ -284,7 +283,7 @@ static NSStringEncoding _StringEncodingFromCharset(NSString* charset) {
 @interface OCFWebServerURLEncodedFormRequest ()
 
 #pragma mark - Properties
-@property(nonatomic, copy, readwrite) NSDictionary *arguments;
+@property (nonatomic, copy, readwrite) NSDictionary *arguments;
 
 @end
 
@@ -313,8 +312,8 @@ static NSStringEncoding _StringEncodingFromCharset(NSString* charset) {
 @interface OCFWebServerMultiPart ()
 
 #pragma mark - Properties
-@property(nonatomic, copy, readwrite) NSString *contentType;
-@property(nonatomic, copy, readwrite) NSString *mimeType;
+@property (nonatomic, copy, readwrite) NSString *contentType;
+@property (nonatomic, copy, readwrite) NSString *mimeType;
 
 @end
 
@@ -340,8 +339,8 @@ static NSStringEncoding _StringEncodingFromCharset(NSString* charset) {
 @interface OCFWebServerMultiPartArgument ()
 
 #pragma mark - Properties
-@property(nonatomic, copy, readwrite) NSData *data;
-@property(nonatomic, copy, readwrite) NSString *string;
+@property (nonatomic, copy, readwrite) NSData *data;
+@property (nonatomic, copy, readwrite) NSString *string;
 
 @end
 
@@ -369,8 +368,8 @@ static NSStringEncoding _StringEncodingFromCharset(NSString* charset) {
 @interface OCFWebServerMultiPartFile ()
 
 #pragma mark - Properties
-@property(nonatomic, copy, readwrite) NSString *fileName;
-@property(nonatomic, copy, readwrite) NSString *temporaryPath;
+@property (nonatomic, copy, readwrite) NSString *fileName;
+@property (nonatomic, copy, readwrite) NSString *temporaryPath;
 
 @end
 

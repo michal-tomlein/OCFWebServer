@@ -42,10 +42,10 @@
 @interface OCFWebServerResponse ()
 
 #pragma mark - Properties
-@property(nonatomic, copy, readwrite) NSString *contentType;
-@property(nonatomic, readwrite) NSUInteger contentLength;
-//@property(nonatomic, readwrite) NSInteger statusCode;  // Default is 200
-@property(nonatomic, readwrite, copy) NSDictionary *additionalHeaders;
+@property (nonatomic, copy, readwrite) NSString *contentType;
+@property (nonatomic, readwrite) NSUInteger contentLength;
+//@property (nonatomic, readwrite) NSInteger statusCode;  // Default is 200
+@property (nonatomic, readwrite, copy) NSDictionary *additionalHeaders;
 
 @end
 

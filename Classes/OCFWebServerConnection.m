@@ -34,7 +34,6 @@
  */
 
 #import "OCFWebServerPrivate.h"
-#import "OCFWebServerRequest.h"
 #import "OCFWebServerResponse.h"
 
 typedef NS_ENUM(long, OCFWebServerConnectionDataTag) {
@@ -282,6 +281,7 @@ static dispatch_queue_t _formatterQueue = NULL;
       for (OCFWebServerHandler *handler in self.server.handlers) {
         self.request = handler.matchBlock(requestMethod, requestURL, requestHeaders, requestPath, requestQuery);
         if (self.request) {
+          self.request.connection = self;
           self.handler = handler;
           break;
         }

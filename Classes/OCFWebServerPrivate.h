@@ -34,6 +34,7 @@
  */
 
 #import "OCFWebServerConnection.h"
+#import "OCFWebServerRequest.h"
 
 #import <CocoaAsyncSocket/GCDAsyncSocket.h>
 
@@ -102,9 +103,12 @@ NSDictionary* OCFWebServerParseURLEncodedForm(NSString* form);
 }
 #endif
 
-
 @interface OCFWebServerConnection () <GCDAsyncSocketDelegate>
 - (instancetype)initWithServer:(OCFWebServer *)server address:(NSData *)address socket:(GCDAsyncSocket *)socket;
+@end
+
+@interface OCFWebServerRequest ()
+@property (nonatomic, weak) OCFWebServerConnection *connection;
 @end
 
 @interface OCFWebServer ()
@@ -116,7 +120,7 @@ NSDictionary* OCFWebServerParseURLEncodedForm(NSString* form);
 @end
 
 @interface OCFWebServerHandler : NSObject
-@property(nonatomic, copy, readonly) OCFWebServerMatchBlock matchBlock;
-@property(nonatomic, copy, readonly) OCFWebServerProcessBlock processBlock;
+@property (nonatomic, copy, readonly) OCFWebServerMatchBlock matchBlock;
+@property (nonatomic, copy, readonly) OCFWebServerProcessBlock processBlock;
 - (id)initWithMatchBlock:(OCFWebServerMatchBlock)matchBlock processBlock:(OCFWebServerProcessBlock)processBlock;
 @end

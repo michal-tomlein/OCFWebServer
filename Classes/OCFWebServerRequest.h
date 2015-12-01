@@ -41,20 +41,21 @@
 @interface OCFWebServerRequest : NSObject
 
 #pragma mark - Properties
-@property(nonatomic, copy, readonly) NSString *method;
-@property(nonatomic, copy, readonly) NSURL *URL;
-@property(nonatomic, copy, readonly) NSDictionary *headers;
-@property(nonatomic, copy, readonly) NSString *path;
-@property(nonatomic, copy, readonly) NSDictionary *query;  // May be nil
-@property(nonatomic, copy, readonly) NSString *contentType;  // Automatically parsed from headers (nil if request has no body)
-@property(nonatomic, readonly) NSUInteger contentLength;  // Automatically parsed from headers
+@property (nonatomic, weak, readonly) OCFWebServerConnection *connection;
+@property (nonatomic, copy, readonly) NSString *method;
+@property (nonatomic, copy, readonly) NSURL *URL;
+@property (nonatomic, copy, readonly) NSDictionary *headers;
+@property (nonatomic, copy, readonly) NSString *path;
+@property (nonatomic, copy, readonly) NSDictionary *query;  // May be nil
+@property (nonatomic, copy, readonly) NSString *contentType;  // Automatically parsed from headers (nil if request has no body)
+@property (nonatomic, readonly) NSUInteger contentLength;  // Automatically parsed from headers
 
 /**
  *  Returns the parsed "Range" header or (NSUIntegerMax, 0) if absent or malformed.
  *  The range will be set to (offset, length) if expressed from the beginning
  *  of the entity body, or (NSUIntegerMax, length) if expressed from its end.
  */
-@property(nonatomic, readonly) NSRange byteRange;
+@property (nonatomic, readonly) NSRange byteRange;
 
 #pragma mark - Creating
 - (instancetype)initWithMethod:(NSString *)method URL:(NSURL *)url headers:(NSDictionary *)headers path:(NSString *)path query:(NSDictionary *)query;
@@ -76,21 +77,21 @@
 @interface OCFWebServerDataRequest : OCFWebServerRequest
 
 #pragma mark - Properties
-@property(nonatomic, copy, readonly) NSData *data;  // Only valid after open / write / close sequence
+@property (nonatomic, copy, readonly) NSData *data;  // Only valid after open / write / close sequence
 
 @end
 
 @interface OCFWebServerFileRequest : OCFWebServerRequest
 
 #pragma mark - Properties
-@property(nonatomic, copy, readonly) NSString *filePath;  // Only valid after open / write / close sequence
+@property (nonatomic, copy, readonly) NSString *filePath;  // Only valid after open / write / close sequence
 
 @end
 
 @interface OCFWebServerURLEncodedFormRequest : OCFWebServerDataRequest
 
 #pragma mark - Properties
-@property(nonatomic, copy, readonly) NSDictionary* arguments;  // Only valid after open / write / close sequence
+@property (nonatomic, copy, readonly) NSDictionary* arguments;  // Only valid after open / write / close sequence
 
 #pragma mark - Global Stuff
 + (NSString *)mimeType;
@@ -100,23 +101,23 @@
 @interface OCFWebServerMultiPart : NSObject
 
 #pragma mark - Properties
-@property(nonatomic, copy, readonly) NSString *contentType;  // May be nil
-@property(nonatomic, copy, readonly) NSString *mimeType;  // Defaults to "text/plain" per specifications if undefined
+@property (nonatomic, copy, readonly) NSString *contentType;  // May be nil
+@property (nonatomic, copy, readonly) NSString *mimeType;  // Defaults to "text/plain" per specifications if undefined
 @end
 
 @interface OCFWebServerMultiPartArgument : OCFWebServerMultiPart
 
 #pragma mark - Properties
-@property(nonatomic, copy, readonly) NSData *data;
-@property(nonatomic, copy, readonly) NSString *string;  // May be nil (only valid for text mime types
+@property (nonatomic, copy, readonly) NSData *data;
+@property (nonatomic, copy, readonly) NSString *string;  // May be nil (only valid for text mime types
 
 @end
 
 @interface OCFWebServerMultiPartFile : OCFWebServerMultiPart
 
 #pragma mark - Properties
-@property(nonatomic, copy, readonly) NSString *fileName;  // May be nil
-@property(nonatomic, copy, readonly) NSString *temporaryPath;
+@property (nonatomic, copy, readonly) NSString *fileName;  // May be nil
+@property (nonatomic, copy, readonly) NSString *temporaryPath;
 
 @end
 
