@@ -36,6 +36,7 @@
 #import <Foundation/Foundation.h>
 #import "OCFWebServerRequest_Types.h"
 
+@class OCFWebServerConnection;
 @class OCFWebServerResponse;
 
 @interface OCFWebServerRequest : NSObject
