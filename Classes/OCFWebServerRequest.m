@@ -175,6 +175,11 @@ static NSStringEncoding _StringEncodingFromCharset(NSString* charset) {
 
 @implementation OCFWebServerRequest (Subclassing)
 
+- (NSUInteger)receivedLength {
+  [self doesNotRecognizeSelector:_cmd];
+  return 0;
+}
+
 - (BOOL)open {
   [self doesNotRecognizeSelector:_cmd];
   return NO;
@@ -216,6 +221,10 @@ static NSStringEncoding _StringEncodingFromCharset(NSString* charset) {
   DCHECK(self.data != nil);
 }
 
+- (NSUInteger)receivedLength {
+  return _data.length;
+}
+
 - (BOOL)open {
   DCHECK(self.data == nil);
   self.data = [NSMutableData dataWithCapacity:self.contentLength];
@@ -241,6 +250,7 @@ static NSStringEncoding _StringEncodingFromCharset(NSString* charset) {
 #pragma mark - Properties
 @property (nonatomic, copy, readwrite) NSString *filePath;
 @property (nonatomic, assign) int file;
+@property (nonatomic, readwrite) NSUInteger receivedLength;
 
 @end
 
@@ -268,6 +278,7 @@ static NSStringEncoding _StringEncodingFromCharset(NSString* charset) {
 
 - (NSInteger)write:(const void*)buffer maxLength:(NSUInteger)length {
   DCHECK(self.file > 0);
+  self.receivedLength += length;
   return write(self.file, buffer, length);
 }
 
@@ -467,6 +478,10 @@ static NSStringEncoding _StringEncodingFromCharset(NSString* charset) {
     self.parserState = OCFWebServerParserStateUndefined;
   }
   return self;
+}
+
+- (NSUInteger)receivedLength {
+  return _data.length;
 }
 
 - (NSInteger)write:(const void*)buffer maxLength:(NSUInteger)length {

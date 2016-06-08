@@ -223,8 +223,10 @@ static dispatch_queue_t _formatterQueue = NULL;
   if ([self.request open]) {
     if (initialData.length) {
       [self _processBodyData:initialData];
+    } else {
+      NSUInteger contentLength = self.request.contentLength;
+      [self.socket readDataToLength:MIN(kBodyWriteBufferSize, contentLength) withTimeout:-1 tag:OCFWebServerConnectionDataTagBody];
     }
-    [self.socket readDataToLength:self.request.contentLength withTimeout:-1 tag:OCFWebServerConnectionDataTagBody];
   } else {
     [self _abortWithStatusCode:500];
   }
@@ -234,7 +236,7 @@ static dispatch_queue_t _formatterQueue = NULL;
   NSInteger length = self.request.contentLength;
   NSInteger result = [self.request write:data.bytes maxLength:data.length];
   if (result == data.length) {
-    length -= data.length;
+    length -= self.request.receivedLength;
     DCHECK(length >= 0);
   } else {
     LOG_ERROR(@"Failed writing request body on socket %i (error %i)", self.socketFD, (int)result);
@@ -246,6 +248,10 @@ static dispatch_queue_t _formatterQueue = NULL;
     } else {
       [self _abortWithStatusCode:500];
     }
+  } else if (length > 0) {
+    [self.socket readDataToLength:MIN(kBodyWriteBufferSize, length) withTimeout:-1 tag:OCFWebServerConnectionDataTagBody];
+  } else {
+    [self _abortWithStatusCode:500];
   }
 }
 

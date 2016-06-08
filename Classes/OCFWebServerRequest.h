@@ -70,6 +70,7 @@
 @end
 
 @interface OCFWebServerRequest (Subclassing)
+@property (nonatomic, readonly) NSUInteger receivedLength;
 - (BOOL)open;  // Implementation required
 - (NSInteger)write:(const void*)buffer maxLength:(NSUInteger)length;  // Implementation required
 - (BOOL)close;  // Implementation required
