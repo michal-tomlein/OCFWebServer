@@ -182,8 +182,8 @@
 - (NSInteger)read:(void *)buffer maxLength:(NSUInteger)length {
   DCHECK(_offset >= 0);
   NSInteger size = 0;
-  if (_offset < [_data length]) {
-    size = MIN([_data length] - _offset, length);
+  if (_offset < _data.length) {
+    size = MIN(_data.length - _offset, length);
     // the original author used the following snippet here and I do not know why
     // bcopy((char*)self.data.bytes + self.offset, buffer, size);
     NSRange range = NSMakeRange(_offset, size);

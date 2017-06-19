@@ -80,8 +80,8 @@ static dispatch_queue_t _formatterQueue = NULL;
 - (void)_writeData:(NSData *)data withCompletionBlock:(WriteDataCompletionBlock)block {
   _writeCompletionBlocks[@(_writeTag)] = block;
   [self.socket writeData:data withTimeout:-1 tag:_writeTag];
-  LOG_DEBUG(@"Connection sent %i bytes on socket %i", [data length], self.socketFD);
-  self.totalBytesWritten += [data length];
+  LOG_DEBUG(@"Connection sent %lu bytes on socket %i", (unsigned long)data.length, self.socketFD);
+  self.totalBytesWritten += data.length;
   _writeTag++;
 }
 
@@ -161,7 +161,7 @@ static dispatch_queue_t _formatterQueue = NULL;
   [self _writeHeadersWithCompletionBlock:^(BOOL success) {
     [self close];
   }];
-  LOG_DEBUG(@"Connection aborted with status code %i on socket %i", statusCode, self.socketFD);
+  LOG_DEBUG(@"Connection aborted with status code %lu on socket %i", (unsigned long)statusCode, self.socketFD);
 }
 
 // http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
@@ -179,7 +179,7 @@ static dispatch_queue_t _formatterQueue = NULL;
         CFHTTPMessageRef responseMessage = weakSelf.responseMessage;
         NSUInteger maxAge = weakSelf.response.cacheControlMaxAge;
         if (maxAge > 0) {
-          CFHTTPMessageSetHeaderFieldValue(responseMessage, CFSTR("Cache-Control"), (__bridge CFStringRef)[NSString stringWithFormat:@"max-age=%i, public", (int)maxAge]);
+          CFHTTPMessageSetHeaderFieldValue(responseMessage, CFSTR("Cache-Control"), (__bridge CFStringRef)[NSString stringWithFormat:@"max-age=%lu, public", (unsigned long)maxAge]);
         } else {
           CFHTTPMessageSetHeaderFieldValue(responseMessage, CFSTR("Cache-Control"), CFSTR("no-cache"));
         }
@@ -189,7 +189,7 @@ static dispatch_queue_t _formatterQueue = NULL;
         
         if ([weakSelf.response hasBody]) {
           CFHTTPMessageSetHeaderFieldValue(responseMessage, CFSTR("Content-Type"), (__bridge CFStringRef)weakSelf.response.contentType);
-          CFHTTPMessageSetHeaderFieldValue(responseMessage, CFSTR("Content-Length"), (__bridge CFStringRef)[NSString stringWithFormat:@"%i", (int)weakSelf.response.contentLength]);
+          CFHTTPMessageSetHeaderFieldValue(responseMessage, CFSTR("Content-Length"), (__bridge CFStringRef)[NSString stringWithFormat:@"%lu", (unsigned long)weakSelf.response.contentLength]);
         }
         [weakSelf _writeHeadersWithCompletionBlock:^(BOOL success) {
           if (success) {
@@ -239,7 +239,7 @@ static dispatch_queue_t _formatterQueue = NULL;
     length -= self.request.receivedLength;
     DCHECK(length >= 0);
   } else {
-    LOG_ERROR(@"Failed writing request body on socket %i (error %i)", self.socketFD, (int)result);
+    LOG_ERROR(@"Failed writing request body on socket %i (error %ld)", self.socketFD, (long)result);
     length = -1;
   }
   if (length == 0) {
@@ -349,7 +349,7 @@ static dispatch_queue_t _formatterQueue = NULL;
 #pragma mark - GCD Async Socket Delegate
 
 - (void)socket:(GCDAsyncSocket *)sock didReadData:(NSData *)data withTag:(long)tag {
-  self.totalBytesRead += [data length];
+  self.totalBytesRead += data.length;
 
   switch (tag) {
     case OCFWebServerConnectionDataTagHeaders:

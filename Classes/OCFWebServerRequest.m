@@ -371,7 +371,7 @@ static NSStringEncoding _StringEncodingFromCharset(NSString* charset) {
 
 #pragma mark - NSObject
 - (NSString *)description {
-  return [NSString stringWithFormat:@"<%@ | '%@' | %i bytes>", [self class], self.mimeType, (int)_data.length];
+  return [NSString stringWithFormat:@"<%@ | '%@' | %lu bytes>", [self class], self.mimeType, (unsigned long)_data.length];
 }
 
 @end
