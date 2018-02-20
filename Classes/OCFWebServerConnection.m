@@ -62,6 +62,7 @@ static dispatch_queue_t _formatterQueue = NULL;
 #pragma mark - Properties
 @property (nonatomic, weak, readwrite) OCFWebServer* server;
 @property (nonatomic, copy, readwrite) NSData *address;  // struct sockaddr
+@property (nonatomic, strong, readwrite) __attribute__((NSObject)) SecTrustRef trust;
 @property (nonatomic, readwrite) NSUInteger totalBytesRead;
 @property (nonatomic, readwrite) NSUInteger totalBytesWritten;
 @property (nonatomic, strong) GCDAsyncSocket *socket;
@@ -347,6 +348,13 @@ static dispatch_queue_t _formatterQueue = NULL;
 }
 
 #pragma mark - GCD Async Socket Delegate
+
+- (void)socket:(GCDAsyncSocket *)sock didReceiveTrust:(SecTrustRef)trust completionHandler:(void (^)(BOOL))completionHandler {
+  if (trust) {
+    self.trust = trust;
+  }
+  completionHandler(YES);
+}
 
 - (void)socket:(GCDAsyncSocket *)sock didReadData:(NSData *)data withTag:(long)tag {
   self.totalBytesRead += data.length;

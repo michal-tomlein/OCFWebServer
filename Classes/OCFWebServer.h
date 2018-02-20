@@ -51,8 +51,8 @@ typedef void(^OCFWebServerProcessBlock)(OCFWebServerRequest* request);
  * If not @c nil, the server will use HTTPS.
  * The default value is @c nil.
  */
-@property (nonatomic, strong) NSArray *SSLCertificates;
-@property (nonatomic, strong, readonly) NSDictionary *TLSSettings;
+@property (nonatomic, copy) NSArray *SSLCertificates;
+@property (nonatomic, copy) NSDictionary *TLSSettings;
 
 #pragma mark - OCFWebServer
 - (void)addHandlerWithMatchBlock:(OCFWebServerMatchBlock)matchBlock processBlock:(OCFWebServerProcessBlock)processBlock;
