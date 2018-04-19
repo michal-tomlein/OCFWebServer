@@ -292,10 +292,10 @@ static void _NetServiceClientCallBack(CFNetServiceRef service, CFStreamError* er
   }
   __typeof__(connection) __weak weakConnection = connection;
   [connection openWithCompletionHandler:^{
-    @synchronized(_connections) {
+    @synchronized(self->_connections) {
       if (weakConnection != nil) {
-        [_connections removeObject:weakConnection];
-        LOG_DEBUG(@"Number of connections: %lu", _connections.count);
+        [self->_connections removeObject:weakConnection];
+        LOG_DEBUG(@"Number of connections: %lu", self->_connections.count);
       }
     }
   }];

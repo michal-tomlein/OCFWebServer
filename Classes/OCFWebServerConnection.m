@@ -341,7 +341,7 @@ static dispatch_queue_t _formatterQueue = NULL;
     _socket = socket;
     [socket setDelegate:self delegateQueue:_queue];
     [socket performBlock:^{
-      _socketFD = socket.socketFD;
+      self->_socketFD = socket.socketFD;
     }];
   }
   return self;
