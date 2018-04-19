@@ -61,7 +61,7 @@ NSString* OCFWebServerGetMimeTypeForExtension(NSString* extension) {
 }
 
 NSString* OCFWebServerUnescapeURLString(NSString* string) {
-  return CFBridgingRelease(CFURLCreateStringByReplacingPercentEscapesUsingEncoding(kCFAllocatorDefault, (CFStringRef)string, CFSTR(""), kCFStringEncodingUTF8));
+  return CFBridgingRelease(CFURLCreateStringByReplacingPercentEscapes(kCFAllocatorDefault, (CFStringRef)string, CFSTR("")));
 }
 
 NSDictionary* OCFWebServerParseURLEncodedForm(NSString* form) {
@@ -364,7 +364,7 @@ static void _NetServiceClientCallBack(CFNetServiceRef service, CFStreamError* er
   for (NSString* file in enumerator) {
     if (![file hasPrefix:@"."]) {
       NSString* type = [enumerator fileAttributes][NSFileType];
-      NSString* escapedFile = [file stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+      NSString* escapedFile = [file stringByAddingPercentEncodingWithAllowedCharacters:NSCharacterSet.URLPathAllowedCharacterSet];
       DCHECK(escapedFile);
       if ([type isEqualToString:NSFileTypeRegular]) {
         [html appendFormat:@"<li><a href=\"%@\">%@</a></li>\n", escapedFile, file];
