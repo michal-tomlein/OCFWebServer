@@ -220,16 +220,16 @@ static dispatch_queue_t _formatterQueue = NULL;
   }
 }
 
-- (void)_readRequestBody:(NSData *)initialData {
-  if ([self.request open]) {
-    if (initialData.length) {
-      [self _processBodyData:initialData];
+- (void)_readRequestBody {
+  NSUInteger contentLength = self.request.contentLength;
+  if (contentLength) {
+    if ([self.request open]) {
+        [self.socket readDataToLength:MIN(kBodyWriteBufferSize, contentLength) withTimeout:-1 tag:OCFWebServerConnectionDataTagBody];
     } else {
-      NSUInteger contentLength = self.request.contentLength;
-      [self.socket readDataToLength:MIN(kBodyWriteBufferSize, contentLength) withTimeout:-1 tag:OCFWebServerConnectionDataTagBody];
+      [self _abortWithStatusCode:500];
     }
   } else {
-    [self _abortWithStatusCode:500];
+    [self _processRequest];
   }
 }
 
@@ -264,7 +264,6 @@ static dispatch_queue_t _formatterQueue = NULL;
 }
 
 - (void)_processHeaderData:(NSData *)data {
-  NSData *extraData = nil;
   CFHTTPMessageRef requestMessage = self.requestMessage;
   if (requestMessage && CFHTTPMessageAppendBytes(requestMessage, data.bytes, data.length)) {
     if (CFHTTPMessageIsHeaderComplete(requestMessage)) {
@@ -295,25 +294,20 @@ static dispatch_queue_t _formatterQueue = NULL;
       }
       if (self.request) {
         if (self.request.hasBody) {
-          if (extraData.length <= self.request.contentLength) {
-            NSString* expectHeader = CFBridgingRelease(CFHTTPMessageCopyHeaderFieldValue(requestMessage, CFSTR("Expect")));
-            if (expectHeader) {
-              if ([expectHeader caseInsensitiveCompare:@"100-continue"] == NSOrderedSame) {
-                [self _writeData:_continueData withCompletionBlock:^(BOOL success) {
-                  if (success) {
-                    [self _readRequestBody:extraData];
-                  }
-                }];
-              } else {
-                LOG_ERROR(@"Unsupported 'Expect' / 'Content-Length' header combination on socket %i", self.socketFD);
-                [self _abortWithStatusCode:417];
-              }
+          NSString* expectHeader = CFBridgingRelease(CFHTTPMessageCopyHeaderFieldValue(requestMessage, CFSTR("Expect")));
+          if (expectHeader) {
+            if ([expectHeader caseInsensitiveCompare:@"100-continue"] == NSOrderedSame) {
+              [self _writeData:_continueData withCompletionBlock:^(BOOL success) {
+                if (success) {
+                  [self _readRequestBody];
+                }
+              }];
             } else {
-              [self _readRequestBody:extraData];
+              LOG_ERROR(@"Unsupported 'Expect' / 'Content-Length' header combination on socket %i", self.socketFD);
+              [self _abortWithStatusCode:417];
             }
           } else {
-            LOG_ERROR(@"Unexpected 'Content-Length' header value on socket %i", self.socketFD);
-            [self _abortWithStatusCode:400];
+            [self _readRequestBody];
           }
         } else {
           [self _processRequest];

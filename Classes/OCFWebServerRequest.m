@@ -266,7 +266,7 @@ static NSStringEncoding _StringEncodingFromCharset(NSString* charset) {
 }
 
 - (void)dealloc {
-  DCHECK(self.file < 0);
+  DCHECK(self.file <= 0);
   unlink([self.filePath fileSystemRepresentation]);
 }
 
