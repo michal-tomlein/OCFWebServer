@@ -14,6 +14,7 @@ Pod::Spec.new do |s|
 
   # s.platform     = :ios, '5.0'
   s.ios.deployment_target = '6.0'
+  s.tvos.deployment_target = '9.0'
   s.osx.deployment_target = '10.8'
   s.requires_arc = true
 
@@ -21,6 +22,7 @@ Pod::Spec.new do |s|
   s.resources = 'Assets'
 
   s.ios.exclude_files = 'Classes/osx'
+  s.tvos.exclude_files = 'Classes/osx'
   s.osx.exclude_files = 'Classes/ios'
   s.public_header_files = 'Classes/*.h'
   # s.frameworks = 'SomeFramework', 'AnotherFramework'
