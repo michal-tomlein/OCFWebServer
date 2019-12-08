@@ -1,0 +1,16 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "CocoaAsyncSocket",
+        "repositoryURL": "https://github.com/michal-tomlein/CocoaAsyncSocket",
+        "state": {
+          "branch": null,
+          "revision": "8aca2fa21b53250c43b085e8da7153245a781c8a",
+          "version": "7.6.4-beta.0"
+        }
+      }
+    ]
+  },
+  "version": 1
+}
