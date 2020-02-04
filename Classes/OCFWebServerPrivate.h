@@ -67,7 +67,7 @@ static inline void __LogMessage(long level, NSString* format, ...) {
 #define LOG_ERROR(...) __LogMessage(4, __VA_ARGS__)
 #define LOG_EXCEPTION(__EXCEPTION__) __LogMessage(5, @"%@", __EXCEPTION__)
 
-#ifdef NDEBUG
+#if 1
 
 #define DCHECK(__CONDITION__)
 #define DNOT_REACHED()
