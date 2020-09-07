@@ -5,6 +5,11 @@ import PackageDescription
 
 let package = Package(
     name: "OCFWebServer",
+    platforms: [
+        .iOS(.v10),
+        .macOS(.v10_12),
+        .tvOS(.v10)
+    ],
     products: [
         // Products define the executables and libraries produced by a package, and make them visible to other packages.
         .library(
