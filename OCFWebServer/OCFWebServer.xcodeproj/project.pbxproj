@@ -14,8 +14,8 @@
 		AB72696D1855DA0A0075A8CA /* OCFWebServer.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7269501855DA0A0075A8CA /* OCFWebServer.framework */; };
 		AB7269731855DA0A0075A8CA /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = AB7269711855DA0A0075A8CA /* InfoPlist.strings */; };
 		AB7269751855DA0A0075A8CA /* OCFWebServerTests.m in Sources */ = {isa = PBXBuildFile; fileRef = AB7269741855DA0A0075A8CA /* OCFWebServerTests.m */; };
-		AB7269881855DA1E0075A8CA /* OCFWebServer.h in Headers */ = {isa = PBXBuildFile; fileRef = AB72697E1855DA1E0075A8CA /* OCFWebServer.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		AB7269891855DA1E0075A8CA /* OCFWebServer.m in Sources */ = {isa = PBXBuildFile; fileRef = AB72697F1855DA1E0075A8CA /* OCFWebServer.m */; };
+		AB7269881855DA1E0075A8CA /* OCFWebServerClass.h in Headers */ = {isa = PBXBuildFile; fileRef = AB72697E1855DA1E0075A8CA /* OCFWebServerClass.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		AB7269891855DA1E0075A8CA /* OCFWebServerClass.m in Sources */ = {isa = PBXBuildFile; fileRef = AB72697F1855DA1E0075A8CA /* OCFWebServerClass.m */; };
 		AB72698A1855DA1E0075A8CA /* OCFWebServerConnection.h in Headers */ = {isa = PBXBuildFile; fileRef = AB7269801855DA1E0075A8CA /* OCFWebServerConnection.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		AB72698B1855DA1E0075A8CA /* OCFWebServerConnection.m in Sources */ = {isa = PBXBuildFile; fileRef = AB7269811855DA1E0075A8CA /* OCFWebServerConnection.m */; };
 		AB72698C1855DA1E0075A8CA /* OCFWebServerPrivate.h in Headers */ = {isa = PBXBuildFile; fileRef = AB7269821855DA1E0075A8CA /* OCFWebServerPrivate.h */; };
@@ -50,8 +50,8 @@
 		AB7269701855DA0A0075A8CA /* OCFWebServerTests-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "OCFWebServerTests-Info.plist"; sourceTree = "<group>"; };
 		AB7269721855DA0A0075A8CA /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		AB7269741855DA0A0075A8CA /* OCFWebServerTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = OCFWebServerTests.m; sourceTree = "<group>"; };
-		AB72697E1855DA1E0075A8CA /* OCFWebServer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = OCFWebServer.h; path = ../../Classes/OCFWebServer.h; sourceTree = "<group>"; };
-		AB72697F1855DA1E0075A8CA /* OCFWebServer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = OCFWebServer.m; path = ../../Classes/OCFWebServer.m; sourceTree = "<group>"; };
+		AB72697E1855DA1E0075A8CA /* OCFWebServerClass.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = OCFWebServerClass.h; path = ../../Classes/OCFWebServerClass.h; sourceTree = "<group>"; };
+		AB72697F1855DA1E0075A8CA /* OCFWebServerClass.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = OCFWebServerClass.m; path = ../../Classes/OCFWebServerClass.m; sourceTree = "<group>"; };
 		AB7269801855DA1E0075A8CA /* OCFWebServerConnection.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = OCFWebServerConnection.h; path = ../../Classes/OCFWebServerConnection.h; sourceTree = "<group>"; };
 		AB7269811855DA1E0075A8CA /* OCFWebServerConnection.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = OCFWebServerConnection.m; path = ../../Classes/OCFWebServerConnection.m; sourceTree = "<group>"; };
 		AB7269821855DA1E0075A8CA /* OCFWebServerPrivate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = OCFWebServerPrivate.h; path = ../../Classes/OCFWebServerPrivate.h; sourceTree = "<group>"; };
@@ -129,8 +129,8 @@
 		AB7269591855DA0A0075A8CA /* OCFWebServer */ = {
 			isa = PBXGroup;
 			children = (
-				AB72697E1855DA1E0075A8CA /* OCFWebServer.h */,
-				AB72697F1855DA1E0075A8CA /* OCFWebServer.m */,
+				AB72697E1855DA1E0075A8CA /* OCFWebServerClass.h */,
+				AB72697F1855DA1E0075A8CA /* OCFWebServerClass.m */,
 				AB7269801855DA1E0075A8CA /* OCFWebServerConnection.h */,
 				AB7269811855DA1E0075A8CA /* OCFWebServerConnection.m */,
 				AB7269821855DA1E0075A8CA /* OCFWebServerPrivate.h */,
@@ -179,7 +179,7 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				AB7269881855DA1E0075A8CA /* OCFWebServer.h in Headers */,
+				AB7269881855DA1E0075A8CA /* OCFWebServerClass.h in Headers */,
 				AB7269901855DA1E0075A8CA /* OCFWebServerResponse.h in Headers */,
 				AB72698E1855DA1E0075A8CA /* OCFWebServerRequest.h in Headers */,
 				AB72698D1855DA1E0075A8CA /* OCFWebServerRequest_Types.h in Headers */,
@@ -287,7 +287,7 @@
 				AB72698B1855DA1E0075A8CA /* OCFWebServerConnection.m in Sources */,
 				AB7269911855DA1E0075A8CA /* OCFWebServerResponse.m in Sources */,
 				AB72698F1855DA1E0075A8CA /* OCFWebServerRequest.m in Sources */,
-				AB7269891855DA1E0075A8CA /* OCFWebServer.m in Sources */,
+				AB7269891855DA1E0075A8CA /* OCFWebServerClass.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
