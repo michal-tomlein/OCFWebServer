@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		97B0FF1026386FDB00304EB1 /* OCFWebServer.h in Headers */ = {isa = PBXBuildFile; fileRef = 97B0FF0F26386FDB00304EB1 /* OCFWebServer.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		AB7269541855DA0A0075A8CA /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7269531855DA0A0075A8CA /* Cocoa.framework */; };
 		AB72695E1855DA0A0075A8CA /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = AB72695C1855DA0A0075A8CA /* InfoPlist.strings */; };
 		AB7269691855DA0A0075A8CA /* XCTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB7269681855DA0A0075A8CA /* XCTest.framework */; };
@@ -37,6 +38,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		97B0FF0F26386FDB00304EB1 /* OCFWebServer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = OCFWebServer.h; path = ../../Classes/OCFWebServer.h; sourceTree = "<group>"; };
 		AB7269501855DA0A0075A8CA /* OCFWebServer.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = OCFWebServer.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		AB7269531855DA0A0075A8CA /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
 		AB7269561855DA0A0075A8CA /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
@@ -129,6 +131,7 @@
 		AB7269591855DA0A0075A8CA /* OCFWebServer */ = {
 			isa = PBXGroup;
 			children = (
+				97B0FF0F26386FDB00304EB1 /* OCFWebServer.h */,
 				AB72697E1855DA1E0075A8CA /* OCFWebServerClass.h */,
 				AB72697F1855DA1E0075A8CA /* OCFWebServerClass.m */,
 				AB7269801855DA1E0075A8CA /* OCFWebServerConnection.h */,
@@ -183,6 +186,7 @@
 				AB7269901855DA1E0075A8CA /* OCFWebServerResponse.h in Headers */,
 				AB72698E1855DA1E0075A8CA /* OCFWebServerRequest.h in Headers */,
 				AB72698D1855DA1E0075A8CA /* OCFWebServerRequest_Types.h in Headers */,
+				97B0FF1026386FDB00304EB1 /* OCFWebServer.h in Headers */,
 				AB72698A1855DA1E0075A8CA /* OCFWebServerConnection.h in Headers */,
 				AB72698C1855DA1E0075A8CA /* OCFWebServerPrivate.h in Headers */,
 			);
