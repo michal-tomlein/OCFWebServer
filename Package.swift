@@ -26,9 +26,11 @@ let package = Package(
         .target(
             name: "OCFWebServer",
             dependencies: ["CocoaAsyncSocket"],
+            path: "Classes",
             publicHeadersPath: ""),
         .testTarget(
             name: "OCFWebServerTests",
-            dependencies: ["OCFWebServer"]),
+            dependencies: ["OCFWebServer"],
+            path: "OCFWebServer/OCFWebServerTests"),
     ]
 )
