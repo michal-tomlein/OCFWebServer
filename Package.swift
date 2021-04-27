@@ -26,7 +26,6 @@ let package = Package(
         .target(
             name: "OCFWebServer",
             dependencies: ["CocoaAsyncSocket"],
-            exclude: ["OCFWebServer/OCFWebServerPrivate.h"],
             publicHeadersPath: ""),
         .testTarget(
             name: "OCFWebServerTests",
