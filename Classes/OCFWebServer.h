@@ -1,5 +1,5 @@
-#import <OCFWebServer/OCFWebServerClass.h>
-#import <OCFWebServer/OCFWebServerConnection.h>
-#import <OCFWebServer/OCFWebServerRequest_Types.h>
-#import <OCFWebServer/OCFWebServerRequest.h>
-#import <OCFWebServer/OCFWebServerResponse.h>
+#import "OCFWebServerClass.h"
+#import "OCFWebServerConnection.h"
+#import "OCFWebServerRequest_Types.h"
+#import "OCFWebServerRequest.h"
+#import "OCFWebServerResponse.h"
